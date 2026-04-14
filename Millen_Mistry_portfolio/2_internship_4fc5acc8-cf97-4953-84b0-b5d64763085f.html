@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Common Era Calendar - Dark Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --bg-deep: #020617;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-main);
+            color: #f1f5f9;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .nav-btn.active {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+        }
+
+        .calendar-day {
+            min-height: 110px;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        .animate-in {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-slate-200">
+
+    <div id="app" class="flex h-screen w-full">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-[#020617] hidden lg:flex flex-col p-6 z-50 border-r border-white/5">
+            <div class="flex items-center gap-3 font-black text-xl text-emerald-400 mb-10 px-2">
+                <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                    <i data-lucide="calendar" class="text-emerald-500 w-6 h-6"></i>
+                </div>
+                <span class="leading-tight text-white tracking-tight">Common Era</span>
+            </div>
+
+            <nav class="space-y-2 flex-1">
+                <button onclick="setView('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-slate-500 hover:bg-white/5 hover:text-slate-300" id="btn-dashboard">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="setView('projects')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-slate-500 hover:bg-white/5 hover:text-slate-300" id="btn-projects">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                    <span>Projects</span>
+                </button>
+                <button onclick="handleDailyFocus()" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-slate-500 hover:bg-white/5 hover:text-slate-300" id="btn-today">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                    <span>Daily Focus</span>
+                </button>
+            </nav>
+
+            <!-- User Context -->
+            <div class="mt-auto pt-6 border-t border-white/5">
+                <div class="bg-white/5 rounded-2xl p-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div id="user-avatar" class="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold">JD</div>
+                        <div class="flex-1 overflow-hidden">
+                            <p id="user-name" class="text-xs font-bold text-slate-200 truncate">John Doe</p>
+                            <button onclick="toggleUser()" class="text-[9px] text-emerald-500 font-bold hover:text-emerald-400">Switch Workspace</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-500/5 rounded-2xl p-4 border border-emerald-500/10">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-black text-emerald-500 uppercase">Efficiency</span>
+                        <span id="stats-progress-sidebar" class="text-xs font-black text-white">0/0</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div id="stats-bar-sidebar" class="h-full bg-emerald-500 transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#0f172a]">
+            <header class="h-20 bg-[#0f172a]/80 backdrop-blur-md border-b border-white/5 px-8 flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <!-- Dashboard Stats Section -->
+                    <div class="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                        <div class="flex items-center gap-2 border-r border-white/10 pr-4">
+                            <div class="w-7 h-7 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-500">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                            </div>
+                            <span id="header-tasks-left" class="text-xs font-bold text-slate-300">0 Tasks Left</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-500">
+                                <i data-lucide="layers" class="w-4 h-4"></i>
+                            </div>
+                            <span id="header-active-folders" class="text-xs font-bold text-slate-300">0 Active Folders</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="live-clock" class="text-xs font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full"></div>
+            </header>
+
+            <div id="content-area" class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <!-- Views injected here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 w-full max-w-lg rounded-3xl shadow-2xl border border-white/10 overflow-hidden animate-in">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <div class="flex flex-col gap-1">
+                    <span id="modal-project-tag" class="text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter w-fit"></span>
+                    <h2 id="modal-task-title" class="text-xl font-bold text-white">Details</h2>
+                </div>
+                <button onclick="closeModal()" class="w-10 h-10 flex items-center justify-center hover:bg-white/5 rounded-full text-slate-400 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest">Action Items</p>
+                <div id="subtask-list" class="space-y-2 mb-6"></div>
+                <form onsubmit="addSubtask(event)" class="flex gap-2">
+                    <input id="new-subtask-input" type="text" placeholder="Add a sub-step..." class="flex-1 bg-slate-900 border border-white/5 rounded-xl px-4 py-3 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-emerald-500">
+                    <button class="bg-emerald-500 text-white px-4 rounded-xl hover:bg-emerald-600 transition-colors">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Edit Modal -->
+    <div id="project-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 w-full max-w-sm rounded-3xl shadow-2xl border border-white/10 animate-in">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white">Edit Folder</h2>
+                <button onclick="closeProjectModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block">Name</label>
+                    <input id="edit-proj-name" type="text" class="w-full bg-slate-900 border border-white/5 rounded-xl px-4 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase mb-2 block">Theme Color</label>
+                    <div id="color-picker-container" class="flex gap-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <button onclick="saveProjectEdit()" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm mt-4 hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            currentView: 'dashboard',
+            selectedDate: new Date().toISOString().split('T')[0],
+            currentUser: { id: 1, name: 'John Doe', initials: 'JD' },
+            projects: [
+                { id: 'p1', name: 'Product Launch', color: 'bg-emerald-500' },
+                { id: 'p2', name: 'Internal Audit', color: 'bg-indigo-500' }
+            ],
+            tasks: [
+                { id: 1, text: 'Finalize UI assets', completed: false, projectId: 'p1', dueDate: '2026-04-14', subtasks: [] },
+                { id: 2, text: 'Draft audit report', completed: true, projectId: 'p2', dueDate: '2026-04-14', subtasks: [] }
+            ],
+            activeTaskId: null,
+            activeProjectEditId: null,
+            tempEditColor: ''
+        };
+
+        const colors = ['bg-emerald-500', 'bg-indigo-500', 'bg-rose-500', 'bg-amber-500', 'bg-sky-500'];
+
+        function init() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            render();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+
+        function setView(view) {
+            state.currentView = view;
+            render();
+        }
+
+        function handleDailyFocus() {
+            state.selectedDate = new Date().toISOString().split('T')[0];
+            state.currentView = 'today';
+            render();
+        }
+
+        function render() {
+            const area = document.getElementById('content-area');
+            area.innerHTML = '';
+            
+            // Sync Nav
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-${state.currentView}`);
+            if(activeBtn) activeBtn.classList.add('active');
+
+            // Global Stats Sync
+            const pending = state.tasks.filter(t => !t.completed).length;
+            const done = state.tasks.filter(t => t.completed).length;
+            const total = state.tasks.length;
+            const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+            document.getElementById('header-tasks-left').innerText = `${pending} Task${pending !== 1 ? 's' : ''} Left`;
+            document.getElementById('header-active-folders').innerText = `${state.projects.length} Active Folder${state.projects.length !== 1 ? 's' : ''}`;
+            document.getElementById('stats-progress-sidebar').innerText = `${done}/${total}`;
+            document.getElementById('stats-bar-sidebar').style.width = `${pct}%`;
+
+            if (state.currentView === 'dashboard') renderDashboard(area);
+            else if (state.currentView === 'projects') renderProjects(area);
+            else if (state.currentView === 'today') renderToday(area);
+
+            lucide.createIcons();
+        }
+
+        function renderDashboard(container) {
+            const div = document.createElement('div');
+            div.className = 'animate-in';
+            let html = `
+                <div class="bg-slate-800/50 rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+                    <div class="grid grid-cols-7 border-b border-white/5 bg-slate-900/40">
+                        ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">${d}</div>`).join('')}
+                    </div>
+                    <div class="grid grid-cols-7 bg-white/5 gap-px">
+            `;
+
+            // Offset for April 2026 (Starts Wed)
+            for (let i = 0; i < 3; i++) html += `<div class="bg-slate-800/20 calendar-day"></div>`;
+            for (let i = 1; i <= 30; i++) {
+                const date = `2026-04-${i.toString().padStart(2, '0')}`;
+                const hasTasks = state.tasks.some(t => t.dueDate === date && !t.completed);
+                html += `
+                    <div onclick="handleDateClick('${date}')" class="bg-slate-800 calendar-day p-4 cursor-pointer relative ${state.selectedDate === date ? 'bg-emerald-500/5 ring-1 ring-emerald-500/50' : ''}">
+                        <span class="text-xs font-black ${state.selectedDate === date ? 'text-emerald-500' : 'text-slate-500'}">${i}</span>
+                        ${hasTasks ? `<div class="mt-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>` : ''}
+                    </div>
+                `;
+            }
+            html += `</div></div>`;
+            div.innerHTML = html;
+            container.appendChild(div);
+        }
+
+        function renderProjects(container) {
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in';
+            
+            let html = `
+                <div class="bg-slate-800/40 border-2 border-dashed border-white/10 rounded-3xl p-8 flex flex-col items-center justify-center group hover:border-emerald-500/30 transition-all min-h-[220px]">
+                    <form onsubmit="addProject(event)" class="w-full text-center">
+                        <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 group-hover:text-emerald-500 transition-colors">
+                            <i data-lucide="plus"></i>
+                        </div>
+                        <input id="new-proj-name" type="text" placeholder="New Folder Name" class="w-full bg-slate-900 border border-white/5 rounded-xl px-4 py-2 text-xs text-center outline-none mb-3">
+                        <button class="text-xs font-black text-emerald-500 uppercase tracking-widest hover:text-white transition-colors">Create Folder</button>
+                    </form>
+                </div>
+            `;
+
+            state.projects.forEach(p => {
+                const pTasks = state.tasks.filter(t => t.projectId === p.id);
+                const pct = pTasks.length === 0 ? 0 : Math.round((pTasks.filter(t => t.completed).length / pTasks.length) * 100);
+                html += `
+                    <div class="bg-slate-800 rounded-3xl p-6 border border-white/5 hover:border-white/10 transition-all group relative min-h-[220px]">
+                        <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="openProjectEdit('${p.id}')" class="text-slate-500 hover:text-emerald-400 p-1">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteProject('${p.id}')" class="text-slate-500 hover:text-red-400 p-1">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="w-10 h-10 ${p.color} rounded-xl mb-4 flex items-center justify-center text-white shadow-lg shadow-${p.color.split('-')[1]}-500/20">
+                            <i data-lucide="folder" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-200 mb-6 truncate pr-10">${p.name}</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-[10px] font-black text-slate-500 uppercase"><span>Progress</span><span>${pct}%</span></div>
+                            <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                                <div class="h-full ${p.color}" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            div.innerHTML = html;
+            container.appendChild(div);
+        }
+
+        function renderToday(container) {
+            const div = document.createElement('div');
+            div.className = 'max-w-2xl mx-auto space-y-6 animate-in';
+            const dateStr = new Date(state.selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            
+            let html = `
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 class="text-2xl font-black text-white">${dateStr}</h2>
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Daily Focus</p>
+                    </div>
+                    <button onclick="setView('dashboard')" class="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-4 py-2 rounded-full hover:bg-emerald-500 hover:text-white transition-all">Grid View</button>
+                </div>
+
+                <div class="bg-slate-800 p-4 rounded-3xl border border-white/5">
+                    <form onsubmit="addTask(event)" class="flex gap-2">
+                        <input id="new-task-text" type="text" placeholder="Add a focus point..." class="flex-1 bg-slate-900 border border-white/5 rounded-2xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-emerald-500">
+                        <select id="new-task-proj" class="bg-slate-900 border border-white/5 rounded-2xl px-3 text-[10px] font-black uppercase text-slate-500">
+                            ${state.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                        </select>
+                        <button class="bg-emerald-500 text-white px-6 rounded-2xl font-black text-xs uppercase hover:bg-emerald-600 transition-all">Add</button>
+                    </form>
+                </div>
+
+                <div class="space-y-3">
+                    ${state.tasks.filter(t => t.dueDate === state.selectedDate).map(t => {
+                        const p = state.projects.find(pj => pj.id === t.projectId);
+                        return `
+                            <div class="group bg-slate-800 p-5 rounded-3xl border border-white/5 flex items-center gap-4 transition-all hover:border-emerald-500/20">
+                                <button onclick="toggleTask(${t.id})" class="${t.completed ? 'text-emerald-500' : 'text-slate-700 hover:text-emerald-400'} transition-colors">
+                                    <i data-lucide="${t.completed ? 'check-circle' : 'circle'}" class="w-6 h-6"></i>
+                                </button>
+                                <div class="flex-1 cursor-pointer" onclick="openTaskModal(${t.id})">
+                                    <p class="text-sm font-bold ${t.completed ? 'line-through text-slate-600' : 'text-slate-200'}">${t.text}</p>
+                                    <span class="text-[9px] font-black uppercase tracking-tighter text-slate-500">${p ? p.name : 'General'}</span>
+                                </div>
+                                <button onclick="deleteTask(${t.id})" class="text-slate-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        `;
+                    }).join('') || '<div class="py-20 text-center text-slate-600 font-bold text-sm">No tasks for this day.</div>'}
+                </div>
+            `;
+            div.innerHTML = html;
+            container.appendChild(div);
+        }
+
+        // Project Modals & Edits
+        function openProjectEdit(id) {
+            const p = state.projects.find(proj => proj.id === id);
+            if(!p) return;
+            state.activeProjectEditId = id;
+            state.tempEditColor = p.color;
+            
+            document.getElementById('edit-proj-name').value = p.name;
+            const container = document.getElementById('color-picker-container');
+            container.innerHTML = colors.map(c => `
+                <button onclick="setEditColor('${c}')" class="w-8 h-8 rounded-lg ${c} ring-offset-2 ring-offset-slate-800 transition-all color-option" data-color="${c}"></button>
+            `).join('');
+            
+            updateColorSelection();
+            document.getElementById('project-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function setEditColor(color) {
+            state.tempEditColor = color;
+            updateColorSelection();
+        }
+
+        function updateColorSelection() {
+            document.querySelectorAll('.color-option').forEach(btn => {
+                if(btn.dataset.color === state.tempEditColor) {
+                    btn.classList.add('ring-2', 'ring-white');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-white');
+                }
+            });
+        }
+
+        function saveProjectEdit() {
+            const newName = document.getElementById('edit-proj-name').value;
+            if(!newName) return;
+            const p = state.projects.find(proj => proj.id === state.activeProjectEditId);
+            if(p) {
+                p.name = newName;
+                p.color = state.tempEditColor;
+            }
+            closeProjectModal();
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+            state.activeProjectEditId = null;
+            render();
+        }
+
+        // Project Core
+        function addProject(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-proj-name').value;
+            if(!name) return;
+            state.projects.push({ 
+                id: 'p' + Date.now(), 
+                name, 
+                color: colors[Math.floor(Math.random() * colors.length)] 
+            });
+            document.getElementById('new-proj-name').value = '';
+            render();
+        }
+
+        function deleteProject(id) {
+            state.projects = state.projects.filter(p => p.id !== id);
+            state.tasks = state.tasks.filter(t => t.projectId !== id);
+            render();
+        }
+
+        // Task & Date
+        function handleDateClick(d) { state.selectedDate = d; state.currentView = 'today'; render(); }
+        
+        function addTask(e) {
+            e.preventDefault();
+            const val = document.getElementById('new-task-text').value;
+            const pId = document.getElementById('new-task-proj').value;
+            if(!val) return;
+            state.tasks.push({ id: Date.now(), text: val, completed: false, projectId: pId, dueDate: state.selectedDate, subtasks: [] });
+            document.getElementById('new-task-text').value = '';
+            render();
+        }
+
+        function toggleTask(id) { const t = state.tasks.find(tk => tk.id === id); if(t) t.completed = !t.completed; render(); }
+        function deleteTask(id) { state.tasks = state.tasks.filter(t => t.id !== id); render(); }
+
+        // Subtasks & Task Modal
+        function openTaskModal(id) {
+            const t = state.tasks.find(tk => tk.id === id);
+            const p = state.projects.find(pj => pj.id === t.projectId);
+            state.activeTaskId = id;
+            document.getElementById('modal-task-title').innerText = t.text;
+            document.getElementById('modal-project-tag').innerText = p ? p.name : 'General';
+            document.getElementById('modal-project-tag').className = `text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter text-white ${p ? p.color : 'bg-slate-600'}`;
+            renderSubtasks();
+            document.getElementById('task-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeModal() { document.getElementById('task-modal').classList.add('hidden'); state.activeTaskId = null; render(); }
+
+        function renderSubtasks() {
+            const t = state.tasks.find(tk => tk.id === state.activeTaskId);
+            const list = document.getElementById('subtask-list');
+            list.innerHTML = t.subtasks.map(s => `
+                <div class="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-white/5">
+                    <button onclick="toggleSub(${s.id})" class="${s.completed ? 'text-emerald-500' : 'text-slate-700'}">
+                        <i data-lucide="check-square" class="w-4 h-4"></i>
+                    </button>
+                    <span class="text-xs ${s.completed ? 'line-through text-slate-600' : 'text-slate-300'}">${s.text}</span>
+                </div>
+            `).join('') || '<p class="text-[10px] text-slate-600 text-center py-4 font-bold uppercase tracking-widest">No Sub-steps</p>';
+            lucide.createIcons();
+        }
+
+        function addSubtask(e) {
+            e.preventDefault();
+            const inp = document.getElementById('new-subtask-input');
+            if(!inp.value) return;
+            state.tasks.find(t => t.id === state.activeTaskId).subtasks.push({id: Date.now(), text: inp.value, completed: false});
+            inp.value = '';
+            renderSubtasks();
+        }
+
+        function toggleSub(id) {
+            const t = state.tasks.find(tk => tk.id === state.activeTaskId);
+            const s = t.subtasks.find(st => st.id === id);
+            if(s) s.completed = !s.completed;
+            renderSubtasks();
+        }
+
+        function toggleUser() {
+            state.currentUser = state.currentUser.id === 1 ? {id:2, name:'Sarah Miller', initials:'SM'} : {id:1, name:'John Doe', initials:'JD'};
+            document.getElementById('user-avatar').innerText = state.currentUser.initials;
+            document.getElementById('user-name').innerText = state.currentUser.name;
+            document.getElementById('user-avatar').className = `w-8 h-8 rounded-full flex items-center justify-center text-[10px] text-white font-bold ${state.currentUser.id === 1 ? 'bg-emerald-600' : 'bg-blue-600'}`;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

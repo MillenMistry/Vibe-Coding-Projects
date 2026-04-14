@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spice Library</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom Animations & Styles */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in-right {
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-[#1F110A] text-amber-50 font-sans selection:bg-[#5c3a21] selection:text-white min-h-screen">
+    
+    <!-- Wall Texture Background -->
+    <div class="fixed inset-0 pointer-events-none opacity-20" style="background-image: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.1) 40px, rgba(0,0,0,0.1) 80px), repeating-linear-gradient(180deg, transparent, transparent 100px, rgba(0,0,0,0.2) 100px, rgba(0,0,0,0.2) 200px);"></div>
+
+    <!-- Main Application Container -->
+    <div id="app" class="relative z-10 w-full min-h-screen"></div>
+
+    <script>
+        // --- DATA ---
+        const SPICE_DATA = [
+            { id: 'garam_masala', name: 'Garam Masala', color: '#9E6B47', textureColor: '#805638', description: 'A cornerstone of Indian cuisine, this "warm spice blend" is fragrant, complex, and layered.', complements: ['Turmeric', 'Coriander', 'Ginger', 'Cumin'], recipes: [{ title: 'Butter Chicken', desc: 'Tender chicken in a rich tomato-based sauce.', ingredients: ['1 lb chicken', '1 cup yogurt', '2 tsp Garam Masala', '1.5 cups tomato puree', '1/2 cup cream'], instructions: ['Marinate chicken with half the Garam Masala and yogurt for 1 hour.', 'Sear chicken in a pan.', 'Add tomato puree and remaining Garam Masala, simmer 15 mins.', 'Stir in cream and heat gently.'] }] },
+            { id: 'chili_powder', name: 'Chili Powder', color: '#B22222', textureColor: '#961c1c', description: 'A blend of ground chilies, cumin, garlic, and oregano. Adds moderate heat and a deep, savory pepper flavor.', complements: ['Cumin', 'Oregano', 'Garlic', 'Paprika'], recipes: [{ title: 'Classic Beef Chili', desc: 'Hearty chili with beans and rich spices.', ingredients: ['1 lb ground beef', '2 tbsp Chili Powder', '1 onion, diced', '1 can kidney beans', '1 can crushed tomatoes'], instructions: ['Brown beef and onions.', 'Stir in chili powder and cook 1 min.', 'Add beans and tomatoes.', 'Simmer for 30 minutes.'] }] },
+            { id: 'cumin_seeds', name: 'Cumin Seeds', color: '#D2B48C', textureColor: '#b09672', description: 'Earthy, warm, and highly aromatic. Blooming them in hot oil (tadka) releases their full potential.', complements: ['Garam Masala', 'Coriander', 'Mustard Seeds', 'Ginger'], recipes: [{ title: 'Jeera Rice', desc: 'Fragrant basmati rice tempered with cumin seeds.', ingredients: ['1 cup basmati rice', '1 tbsp ghee or oil', '1 tsp cumin seeds', '2 cups water', 'Salt to taste'], instructions: ['Wash rice until water runs clear.', 'Heat ghee and fry cumin seeds until they sizzle.', 'Add rice and toast for 1 minute.', 'Add water and salt, simmer covered until water is absorbed.'] }] },
+            { id: 'coriander_seeds', name: 'Coriander Seeds', color: '#DAA520', textureColor: '#b88a1b', description: 'Citrusy, light, and slightly nutty. Often toasted and ground fresh for curries and pickling.', complements: ['Cumin', 'Turmeric', 'Ginger', 'Chili'], recipes: [{ title: 'Quick Pickled Red Onions', desc: 'Bright, tangy onions for tacos or salads.', ingredients: ['1 red onion, sliced', '1 tsp coriander seeds', '1/2 cup apple cider vinegar', '1/2 cup warm water', '1 tbsp sugar', '1.5 tsp salt'], instructions: ['Place sliced onions in a jar.', 'Whisk vinegar, water, sugar, salt, and coriander seeds until dissolved.', 'Pour over onions.', 'Let sit at room temp for 1 hour before using.'] }] },
+            { id: 'mustard_seeds', name: 'Mustard Seeds', color: '#D4AF37', textureColor: '#af912e', description: 'Pungent and slightly bitter. Essential in South Indian cooking, usually popped in hot oil before adding other ingredients.', complements: ['Curry Leaves', 'Asafoetida', 'Cumin', 'Turmeric'], recipes: [{ title: 'Tadka Dal', desc: 'Yellow lentils finished with a spiced oil tempering.', ingredients: ['1 cup red lentils', '1 tbsp ghee', '1 tsp mustard seeds', '1 dried red chili', '1/2 tsp turmeric'], instructions: ['Boil lentils with turmeric until soft.', 'In a small pan, heat ghee and add mustard seeds until they pop.', 'Add red chili to the oil.', 'Pour the spiced oil over the cooked lentils and stir.'] }] },
+            { id: 'asafoetida', name: 'Asafoetida (Hing)', color: '#E3CBBF', textureColor: '#ccac9c', description: 'Highly pungent resin used in pinch amounts. When heated in oil, it transforms into a smooth, leek-and-garlic-like flavor.', complements: ['Mustard Seeds', 'Cumin', 'Turmeric', 'Ginger'], recipes: [{ title: 'Aloo Gobi', desc: 'Classic potato and cauliflower curry.', ingredients: ['1 potato, cubed', '1/2 head cauliflower, in florets', '1 pinch asafoetida', '1 tsp cumin seeds', '1/2 tsp turmeric', 'Oil'], instructions: ['Heat oil, add cumin seeds and asafoetida.', 'Add potatoes and cook for 5 minutes.', 'Add cauliflower and turmeric.', 'Cover and cook until vegetables are tender.'] }] },
+            { id: 'star_anise', name: 'Star Anise', color: '#CD853F', textureColor: '#aa6d32', description: 'Beautiful star-shaped pod with a strong, warm licorice flavor. Crucial for Vietnamese pho and Chinese five-spice.', complements: ['Cinnamon', 'Cloves', 'Sichuan Pepper', 'Ginger'], recipes: [{ title: 'Simplified Pho Broth', desc: 'A quick aromatic broth for noodles.', ingredients: ['4 cups beef or vegetable broth', '2 whole star anise', '1 cinnamon stick', '1 inch ginger, sliced', '1 tbsp soy sauce'], instructions: ['Combine all ingredients in a pot.', 'Simmer for 20-30 minutes to infuse flavors.', 'Strain out the spices.', 'Pour over cooked rice noodles and garnish.'] }] },
+            { id: 'cinnamon_sticks', name: 'Cinnamon Sticks', color: '#8B4513', textureColor: '#6f360f', description: 'Rolled bark that imparts a warm, sweet, woody note. Excellent for infusing liquids over time.', complements: ['Cloves', 'Star Anise', 'Nutmeg', 'Cardamom'], recipes: [{ title: 'Spiced Mulled Cider', desc: 'Warm autumn drink infused with whole spices.', ingredients: ['4 cups apple cider', '2 cinnamon sticks', '4 whole cloves', '1 orange, sliced'], instructions: ['Combine all ingredients in a saucepan.', 'Bring to a gentle simmer (do not boil).', 'Simmer for 15 minutes.', 'Serve warm in mugs.'] }] },
+            { id: 'bay_leaves', name: 'Bay Leaves', color: '#556B2F', textureColor: '#415223', description: 'Herbal and slightly floral. They add a deep, savory background note to soups and stews. Always remove before serving.', complements: ['Thyme', 'Parsley', 'Oregano', 'Black Pepper'], recipes: [{ title: 'Classic Chicken Soup', desc: 'Comforting soup elevated by bay leaf aromatics.', ingredients: ['1 lb chicken breast', '4 cups chicken broth', '2 carrots, chopped', '1 celery stalk, chopped', '2 bay leaves'], instructions: ['Place all ingredients in a large pot.', 'Bring to a boil, then reduce to a simmer.', 'Cook for 25 minutes until chicken is cooked through.', 'Remove bay leaves, shred chicken, and serve.'] }] },
+            { id: 'salt_sea', name: 'Sea Salt', color: '#FDF5E6', textureColor: '#dcd1bb', description: 'The fundamental mineral. Essential for drawing out moisture and enhancing the natural flavors of all foods.', complements: ['Everything'], recipes: [{ title: 'Dry-Brined Roast Chicken', desc: 'The secret to incredibly crispy skin and juicy meat.', ingredients: ['1 whole chicken', '1 tbsp coarse sea salt', '1 tsp black pepper', '1 lemon, halved'], instructions: ['Pat chicken completely dry with paper towels.', 'Rub salt generously all over and inside the cavity.', 'Leave uncovered in the fridge for 12-24 hours.', 'Stuff with lemon and roast at 425°F for 1 hour.'] }] },
+            { id: 'black_peppercorns', name: 'Black Peppercorns', color: '#3A3A3A', textureColor: '#282828', description: 'Provides sharp, biting heat. Freshly cracked pepper has significantly more volatile oils and flavor than pre-ground.', complements: ['Salt', 'Garlic', 'Lemon', 'Parmesan'], recipes: [{ title: 'Cacio e Pepe', desc: 'Roman pasta dish relying entirely on cheese and black pepper.', ingredients: ['8 oz spaghetti', '1 cup Pecorino Romano, grated', '1 tbsp coarsely cracked black pepper', 'Salt'], instructions: ['Boil pasta in heavily salted water until al dente.', 'Toast black pepper in a dry skillet until fragrant.', 'Add 1/2 cup of pasta water to the skillet, then add pasta.', 'Remove from heat, aggressively stir in cheese until creamy.'] }] },
+            { id: 'curry_powder', name: 'Curry Powder', color: '#E4A010', textureColor: '#bd840d', description: 'A Western invention attempting to mimic Indian flavors. Usually a mix of turmeric, coriander, cumin, and fenugreek.', complements: ['Coconut Milk', 'Ginger', 'Garlic', 'Chicken'], recipes: [{ title: 'Coconut Curry Chicken', desc: 'Easy weeknight yellow curry.', ingredients: ['1 lb chicken, cubed', '1 tbsp Curry Powder', '1 can coconut milk', '1 onion, diced', '1 tbsp oil'], instructions: ['Sauté onion in oil until soft.', 'Add chicken and curry powder, cook until chicken is browned.', 'Pour in coconut milk.', 'Simmer for 15 minutes until sauce thickens slightly.'] }] },
+            { id: 'turmeric_powder', name: 'Turmeric Powder', color: '#FFB90F', textureColor: '#d99e0b', description: 'Vibrant yellow powder with an earthy, slightly bitter flavor. Best paired with black pepper to unlock its health benefits.', complements: ['Black Pepper', 'Ginger', 'Cumin', 'Coriander'], recipes: [{ title: 'Golden Milk', desc: 'Soothing, anti-inflammatory bedtime drink.', ingredients: ['1 cup almond milk', '1/2 tsp Turmeric', 'Pinch of black pepper', '1 tsp honey', '1/4 tsp ginger powder'], instructions: ['Heat milk in a small saucepan.', 'Whisk in turmeric, pepper, and ginger.', 'Simmer for 5 minutes.', 'Remove from heat and stir in honey.'] }] },
+            { id: 'coriander_powder', name: 'Coriander Powder', color: '#CD853F', textureColor: '#aa6d32', description: 'Mellow, citrusy, and slightly sweet. It acts as a thickening agent and flavor bridge in many curries.', complements: ['Cumin', 'Turmeric', 'Garam Masala', 'Mint'], recipes: [{ title: 'Spiced Yogurt Marinade', desc: 'Tenderizing marinade for grilled meats.', ingredients: ['1 cup plain yogurt', '1 tbsp Coriander Powder', '1 tsp cumin', '1 clove garlic, minced', '1 tbsp lemon juice'], instructions: ['Mix all ingredients in a bowl.', 'Coat chicken or lamb thoroughly.', 'Marinate for at least 2 hours, up to overnight.', 'Grill or bake meat.'] }] },
+            { id: 'mustard_powder', name: 'Mustard Powder', color: '#D4AF37', textureColor: '#af912e', description: 'Dry mustard has no flavor until mixed with cold liquid, which triggers a chemical reaction creating its sharp, pungent heat.', complements: ['Cheese', 'Vinegar', 'Paprika', 'Honey'], recipes: [{ title: 'Ultimate Mac and Cheese', desc: 'Mustard powder cuts the richness of the cheese sauce.', ingredients: ['8 oz macaroni', '2 tbsp butter', '2 tbsp flour', '1.5 cups milk', '2 cups cheddar cheese', '1 tsp Mustard Powder'], instructions: ['Boil macaroni. In a separate pot, melt butter and whisk in flour.', 'Slowly whisk in milk and mustard powder until thick.', 'Remove from heat and stir in cheese until melted.', 'Combine with pasta and serve.'] }] },
+            { id: 'cumin_powder', name: 'Cumin Powder', color: '#D2B48C', textureColor: '#b09672', description: 'The ground version of the seed. Deep, earthy, and essential for Tex-Mex and Middle Eastern dishes.', complements: ['Chili Powder', 'Oregano', 'Lime', 'Cilantro'], recipes: [{ title: 'Homemade Taco Seasoning', desc: 'Better than store-bought packets.', ingredients: ['2 tbsp chili powder', '1 tbsp Cumin Powder', '1 tsp salt', '1 tsp oregano', '1/2 tsp garlic powder'], instructions: ['Mix all spices together.', 'Store in an airtight container.', 'Use 2 tablespoons per pound of ground meat.', 'Add 1/4 cup water when cooking the meat.'] }] },
+            { id: 'ginger_powder', name: 'Ginger Powder', color: '#EEDC82', textureColor: '#c9b967', description: 'Warm, spicy, and slightly sweet. Acts quite differently than fresh ginger; widely used in baking.', complements: ['Cinnamon', 'Nutmeg', 'Cloves', 'Brown Sugar'], recipes: [{ title: 'Chewy Ginger Molasses Cookies', desc: 'Soft, spiced holiday cookies.', ingredients: ['2 cups flour', '1 tbsp Ginger Powder', '1 tsp cinnamon', '1/2 cup butter', '1/4 cup molasses', '1/2 cup sugar'], instructions: ['Cream butter, sugar, and molasses.', 'Mix in dry ingredients to form a dough.', 'Roll into balls and coat in extra sugar.', 'Bake at 350°F for 10 minutes.'] }] },
+            { id: 'nutmeg', name: 'Nutmeg', color: '#8B6508', textureColor: '#6e5005', description: 'Intensely aromatic, warm, and sweet. A tiny grating elevates creamy sauces, spinach, and desserts.', complements: ['Cinnamon', 'Spinach', 'Cream', 'Vanilla'], recipes: [{ title: 'Creamed Spinach', desc: 'Steakhouse classic enhanced with nutmeg.', ingredients: ['1 lb fresh spinach', '2 tbsp butter', '1/4 cup heavy cream', '1/4 tsp grated Nutmeg', 'Salt to taste'], instructions: ['Wilt spinach in a large pan.', 'Drain excess water completely.', 'Add butter, cream, and nutmeg to the pan.', 'Simmer until thickened.'] }] },
+            { id: 'cloves_whole', name: 'Cloves', color: '#4B2A10', textureColor: '#3d220d', description: 'Incredibly strong, sweet, and pungent. Contains eugenol, which has a numbing effect. Use extremely sparingly.', complements: ['Ham', 'Cinnamon', 'Apples', 'Orange'], recipes: [{ title: 'Studded Baked Ham', desc: 'Holiday ham infused with clove flavor.', ingredients: ['1 bone-in ham', '20 whole cloves', '1/2 cup brown sugar', '1/4 cup maple syrup'], instructions: ['Score the fat of the ham in a diamond pattern.', 'Press one whole clove into the center of each diamond.', 'Mix sugar and syrup, brush over ham.', 'Bake at 325°F until warmed through, basting occasionally.'] }] },
+            { id: 'cardamom', name: 'Cardamom', color: '#CDA475', textureColor: '#b08c64', description: 'Highly fragrant, floral, and slightly minty. Used in both sweet Scandinavian breads and savory Indian curries.', complements: ['Coffee', 'Cinnamon', 'Almonds', 'Rose Water'], recipes: [{ title: 'Cardamom Spiced Coffee', desc: 'Middle Eastern style aromatic coffee.', ingredients: ['2 cups water', '2 tbsp ground coffee', '2 crushed cardamom pods', 'Sugar to taste'], instructions: ['Bring water, coffee, and cardamom to a boil in a small pot.', 'Let it foam up, then remove from heat.', 'Repeat the boiling process twice more.', 'Let grounds settle before pouring.'] }] },
+            { id: 'mace', name: 'Mace', color: '#EEDC82', textureColor: '#c9b967', description: 'The red, lacy outer covering of the nutmeg seed. Flavour is similar to nutmeg but more delicate, peppery, and citrusy.', complements: ['Nutmeg', 'Chicken', 'Fish', 'Cream'], recipes: [{ title: 'Potted Shrimp', desc: 'Classic British dish flavored with mace.', ingredients: ['8 oz cooked small shrimp', '1/2 cup butter, melted', '1/4 tsp ground Mace', 'Pinch of cayenne', 'Lemon juice'], instructions: ['Mix melted butter with mace and cayenne.', 'Toss shrimp in the spiced butter with a squeeze of lemon.', 'Pack into ramekins.', 'Chill until butter sets firm. Serve with toast.'] }] },
+            { id: 'fenugreek', name: 'Fenugreek', color: '#FDF5E6', textureColor: '#dcd1bb', description: 'Crucial for authentic curry flavor. Smells strongly of maple syrup but tastes bitter if eaten raw. Cooking mellows it.', complements: ['Coriander', 'Cumin', 'Tomatoes', 'Potatoes'], recipes: [{ title: 'Methi Murgh (Fenugreek Chicken)', desc: 'Chicken curry starring the unique flavor of fenugreek.', ingredients: ['1 lb chicken', '1 tbsp dried fenugreek leaves (kasuri methi)', '1 onion, pureed', '1/2 cup tomato puree', '1 tsp garam masala'], instructions: ['Brown chicken and pureed onion in oil.', 'Add tomato puree and cook until oil separates.', 'Crush fenugreek leaves in your palms and sprinkle over.', 'Simmer for 10 minutes.'] }] },
+            { id: 'ajwain', name: 'Ajwain', color: '#A9A9A9', textureColor: '#909090', description: 'Looks like thyme seeds but tastes much stronger, like oregano mixed with anise. Excellent for digestion.', complements: ['Chickpea Flour', 'Potatoes', 'Cumin', 'Lentils'], recipes: [{ title: 'Ajwain Paratha', desc: 'Flaky Indian flatbread flavored with carom seeds.', ingredients: ['2 cups whole wheat flour', '1 tsp Ajwain seeds', 'Water to bind', 'Ghee for roasting', '1/2 tsp salt'], instructions: ['Mix flour, ajwain, and salt. Knead into a dough with water.', 'Rest 20 mins. Roll into discs.', 'Cook on a hot griddle, applying ghee on both sides.', 'Serve hot with yogurt or pickle.'] }] },
+            { id: 'herbes_de_provence', name: 'Herbes de Provence', color: '#556B2F', textureColor: '#415223', description: 'A fragrant blend of dried herbs from Southern France, often including savory, marjoram, rosemary, thyme, and oregano.', complements: ['Olive Oil', 'Tomatoes', 'Chicken', 'Fish'], recipes: [{ title: 'Provencal Roasted Vegetables', desc: 'Summer vegetables roasted with French herbs.', ingredients: ['1 zucchini, sliced', '1 eggplant, diced', '1 bell pepper, sliced', '2 tbsp olive oil', '1 tbsp Herbes de Provence'], instructions: ['Toss all vegetables with oil and herbs.', 'Spread on a baking sheet.', 'Roast at 400°F for 25 minutes.', 'Serve warm or at room temperature.'] }] },
+            { id: 'paprika_sweet', name: 'Paprika (Sweet)', color: '#B22222', textureColor: '#961c1c', description: 'Made from mild red peppers. Provides brilliant red color and a subtle, sweet pepper flavor.', complements: ['Eggs', 'Potatoes', 'Chicken', 'Mayonnaise'], recipes: [{ title: 'Hungarian Goulash', desc: 'Rich beef stew relying heavily on quality paprika.', ingredients: ['1.5 lbs beef chuck', '2 onions, chopped', '3 tbsp Sweet Paprika', '2 cups beef broth', '2 potatoes, cubed'], instructions: ['Sauté onions until golden. Remove from heat and stir in paprika.', 'Add beef, coat in spices, and brown slightly.', 'Add broth and simmer 1.5 hours.', 'Add potatoes and cook until tender.'] }] },
+            { id: 'paprika_smoked', name: 'Paprika (Smoked)', color: '#8B0000', textureColor: '#6f0000', description: 'Peppers are smoke-dried over oak fires before grinding. Adds a massive, campfire-like smokiness to dishes.', complements: ['Pork', 'Beans', 'Garlic', 'Chorizo'], recipes: [{ title: 'Smoky Patatas Bravas', desc: 'Crispy potatoes with a smoky, spicy tomato sauce.', ingredients: ['4 potatoes, cubed', '1 cup tomato sauce', '1 tbsp Smoked Paprika', '1 clove garlic', 'Olive oil'], instructions: ['Fry or roast potatoes until crispy.', 'In a small pan, simmer tomato sauce, garlic, and smoked paprika for 5 mins.', 'Pour sauce over hot potatoes.', 'Serve immediately as tapas.'] }] },
+            { id: 'oregano', name: 'Oregano', color: '#556B2F', textureColor: '#415223', description: 'Robust, peppery, and slightly bitter. The defining herb of Italian-American pizza and Greek salads.', complements: ['Tomatoes', 'Feta', 'Lemon', 'Olive Oil'], recipes: [{ title: 'Greek Lemon Chicken', desc: 'Bright and herbaceous roasted chicken.', ingredients: ['4 chicken thighs', '1/4 cup olive oil', 'Juice of 2 lemons', '1 tbsp dried Oregano', '3 cloves garlic, minced'], instructions: ['Whisk oil, lemon, oregano, and garlic.', 'Marinate chicken for at least 1 hour.', 'Roast at 400°F for 35-40 minutes.', 'Serve with extra pan juices.'] }] },
+            { id: 'rosemary', name: 'Rosemary', color: '#556B2F', textureColor: '#415223', description: 'Pine-like, woody, and highly aromatic. Stands up well to long cooking times and heavy meats.', complements: ['Lamb', 'Potatoes', 'Garlic', 'Olive Oil'], recipes: [{ title: 'Rosemary Garlic Roast Potatoes', desc: 'The perfect side dish for any roast.', ingredients: ['1.5 lbs small potatoes, halved', '2 tbsp olive oil', '1 tbsp dried Rosemary (crushed)', '2 cloves garlic, minced', 'Salt'], instructions: ['Toss potatoes in oil, rosemary, garlic, and salt.', 'Spread evenly on a heavy baking sheet.', 'Roast at 425°F for 30 minutes, flipping once.', 'Serve crispy and hot.'] }] },
+            { id: 'thyme', name: 'Thyme', color: '#556B2F', textureColor: '#415223', description: 'Earthy, slightly minty, and subtly floral. Extremely versatile, forms the base of many French and Mediterranean dishes.', complements: ['Mushrooms', 'Chicken', 'Onions', 'Wine'], recipes: [{ title: 'Thyme Butter Mushrooms', desc: 'Savory mushrooms perfect for steak or toast.', ingredients: ['1 lb cremini mushrooms, sliced', '2 tbsp butter', '1 tsp dried Thyme', '1 clove garlic', 'Splash of white wine'], instructions: ['Melt butter in a skillet over medium-high heat.', 'Add mushrooms and cook until browned (don\'t stir too much).', 'Add garlic and thyme, cook 1 minute.', 'Deglaze with wine, let it reduce, and serve.'] }] },
+            { id: 'fennel_seeds', name: 'Fennel Seeds', color: '#A9A9A9', textureColor: '#909090', description: 'Sweet and anise-like. The key flavor profile in Italian sausage. Also chewed raw as a breath freshener in India.', complements: ['Pork', 'Fish', 'Cabbage', 'Apples'], recipes: [{ title: 'Italian Sausage Pasta', desc: 'Quick pasta showcasing fennel-forward sausage.', ingredients: ['8 oz pasta', '1/2 lb ground pork', '1 tsp Fennel Seeds, crushed', '1 tsp paprika', '1 cup marinara sauce'], instructions: ['Mix pork with fennel and paprika to make quick sausage.', 'Brown the meat in a skillet.', 'Add marinara sauce and simmer 5 minutes.', 'Toss with cooked pasta.'] }] },
+            { id: 'cayenne', name: 'Cayenne', color: '#8B0000', textureColor: '#6f0000', description: 'Pure, sharp heat without altering the flavor profile much. A pinch elevates chocolate, cheese sauces, and marinades.', complements: ['Chocolate', 'Cheese', 'Paprika', 'Lemon'], recipes: [{ title: 'Spicy Honey Drizzle', desc: 'Hot honey for pizza, fried chicken, or cheese boards.', ingredients: ['1/2 cup honey', '1/2 tsp Cayenne pepper', '1 tsp apple cider vinegar', 'Pinch of salt'], instructions: ['Gently warm honey in a small saucepan.', 'Whisk in cayenne, vinegar, and salt.', 'Let it infuse for 10 minutes off the heat.', 'Store in a jar; it will thicken as it cools.'] }] },
+            { id: 'allspice', name: 'Allspice', color: '#4B2A10', textureColor: '#3d220d', description: 'A single berry from Jamaica that miraculously tastes like a blend of cinnamon, nutmeg, and cloves.', complements: ['Beef', 'Cinnamon', 'Rum', 'Sweet Potatoes'], recipes: [{ title: 'Jamaican Jerk Marinade', desc: 'Spicy, aromatic marinade for chicken or pork.', ingredients: ['1 onion', '3 scallions', '1 scotch bonnet pepper', '1 tbsp ground Allspice', '1 tbsp fresh thyme', '2 tbsp soy sauce'], instructions: ['Blend all ingredients in a food processor to a paste.', 'Rub generously over chicken pieces.', 'Marinate for at least 4 hours, or overnight.', 'Grill over medium heat until charred and cooked through.'] }] },
+            { id: 'sumac', name: 'Sumac', color: '#CD3333', textureColor: '#aa2727', description: 'Coarse, vibrant burgundy powder made from dried berries. Imparts a sour, tart, lemony flavor without adding liquid.', complements: ['Yogurt', 'Onions', 'Lamb', 'Feta'], recipes: [{ title: 'Sumac Onions', desc: 'A bright, acidic garnish for kebabs or wraps.', ingredients: ['1 red onion, thinly sliced', '1 tbsp Sumac', '1 tbsp lemon juice', 'Pinch of salt', '1 tsp olive oil'], instructions: ['Place sliced onions in a bowl.', 'Sprinkle with sumac, salt, and lemon juice.', 'Massage the spices into the onions with your hands.', 'Drizzle with olive oil and let sit for 15 minutes before serving.'] }] },
+            { id: 'zaatar', name: 'Za\'atar', color: '#556B2F', textureColor: '#415223', description: 'A Middle Eastern blend primarily of wild thyme, toasted sesame seeds, and sumac. Nutty, herbal, and tangy.', complements: ['Olive Oil', 'Pita Bread', 'Labneh', 'Tomatoes'], recipes: [{ title: 'Za\'atar Flatbread (Manakish)', desc: 'Classic Levantine breakfast flatbread.', ingredients: ['1 pita or flatbread dough', '3 tbsp Za\'atar', '3 tbsp high-quality olive oil'], instructions: ['Preheat oven to 400°F.', 'Mix za\'atar and olive oil into a thick paste.', 'Spread the paste evenly over the flatbread.', 'Bake for 5-8 minutes until bubbly and crisp on the edges.'] }] },
+            { id: 'parsley_dried', name: 'Parsley (Dried)', color: '#556B2F', textureColor: '#415223', description: 'Mild, slightly bitter, and clean. Dried parsley is less vibrant than fresh but provides excellent background herbal notes.', complements: ['Garlic', 'Butter', 'Potatoes', 'Fish'], recipes: [{ title: 'Garlic Herb Butter', desc: 'Compound butter for steaks or garlic bread.', ingredients: ['1/2 cup butter, softened', '2 cloves garlic, minced', '1 tbsp dried Parsley', 'Pinch of salt'], instructions: ['Combine softened butter with garlic, parsley, and salt.', 'Mash together with a fork until well blended.', 'Roll in parchment paper into a log.', 'Chill until firm, then slice over hot food.'] }] },
+            { id: 'fennel_powder', name: 'Fennel Powder', color: '#D2B48C', textureColor: '#b09672', description: 'Ground fennel seeds. Provides a smooth, sweet anise flavor that blends easily into rubs and baking flours.', complements: ['Pork', 'Apples', 'Cinnamon', 'Cardamom'], recipes: [{ title: 'Fennel Rubbed Pork Chops', desc: 'Sweet and savory crust for pork.', ingredients: ['2 thick-cut pork chops', '1 tsp Fennel Powder', '1 tsp brown sugar', '1/2 tsp salt', '1/2 tsp pepper'], instructions: ['Mix fennel powder, sugar, salt, and pepper.', 'Rub mixture evenly over both sides of the pork chops.', 'Heat oil in a skillet over medium-high heat.', 'Sear chops for 4-5 minutes per side until cooked through.'] }] },
+            { id: 'ras_el_hanout', name: 'Ras el Hanout', color: '#CD853F', textureColor: '#aa6d32', description: 'Translates to "head of the shop." A complex, premium Moroccan blend that can contain over two dozen spices. Warm, floral, and savory.', complements: ['Lamb', 'Couscous', 'Apricots', 'Honey'], recipes: [{ title: 'Moroccan Chicken Tagine', desc: 'Sweet and savory stew with fruit and nuts.', ingredients: ['1 lb chicken thighs', '1 tbsp Ras el Hanout', '1/4 cup dried apricots', '1 cup chicken broth', '1 onion, sliced'], instructions: ['Coat chicken in Ras el Hanout and brown in a pot.', 'Add onions and sauté until soft.', 'Add broth and apricots, cover, and simmer for 40 minutes.', 'Serve over fluffy couscous.'] }] },
+            { id: 'saffron', name: 'Saffron Threads', color: '#FFB90F', textureColor: '#d99e0b', description: 'The stigmas of a crocus flower. The most expensive spice in the world. Imparts a brilliant golden color and a unique, hay-like, floral flavor.', complements: ['Rice', 'Seafood', 'Chicken', 'Almonds'], recipes: [{ title: 'Classic Saffron Risotto (Risotto alla Milanese)', desc: 'Luxurious, bright yellow Northern Italian rice.', ingredients: ['1 cup Arborio rice', '4 cups warm chicken broth', '1 pinch Saffron threads', '1/2 cup parmesan', '1/4 cup white wine'], instructions: ['Steep saffron in a few tablespoons of warm broth.', 'Toast rice in butter, deglaze with wine.', 'Add broth ladles one at a time, stirring constantly.', 'Stir in saffron liquid and parmesan at the very end.'] }] },
+            { id: 'cumin_black', name: 'Black Cumin (Nigella)', color: '#3A3A3A', textureColor: '#282828', description: 'Not related to regular cumin. These black seeds taste like a mix of toasted onions, oregano, and black pepper. Often found on naan.', complements: ['Bread Dough', 'Potatoes', 'Root Vegetables', 'Feta'], recipes: [{ title: 'Nigella Seed Roasted Carrots', desc: 'Sweet carrots balanced with savory, oniony seeds.', ingredients: ['1 lb carrots, peeled and halved', '1 tsp Black Cumin/Nigella seeds', '1 tbsp olive oil', '1 tsp honey', 'Salt'], instructions: ['Toss carrots with oil, honey, salt, and nigella seeds.', 'Spread on a baking sheet.', 'Roast at 400°F for 25 minutes until caramelized.', 'Serve hot.'] }] },
+            { id: 'garlic_roasted', name: 'Roasted Garlic Powder', color: '#E3CBBF', textureColor: '#ccac9c', description: 'Sweeter, mellower, and more complex than standard garlic powder. Lacks the sharp bite of raw garlic.', complements: ['Mashed Potatoes', 'Steak', 'Mushrooms', 'Butter'], recipes: [{ title: 'Ultimate Mashed Potatoes', desc: 'Creamy potatoes with deep, sweet garlic flavor.', ingredients: ['2 lbs russet potatoes, peeled', '1/2 cup heavy cream', '1/4 cup butter', '1 tbsp Roasted Garlic Powder', 'Salt'], instructions: ['Boil potatoes until fork-tender, then drain.', 'Return to pot to evaporate excess water.', 'Mash in cream, butter, and roasted garlic powder.', 'Whip until smooth and season with salt.'] }] }
+        ];
+
+        // --- STATE VARIABLES ---
+        let currentView = 'cabinet';
+        let searchQuery = '';
+        let selectedSpice = null;
+        let selectedRecipe = null;
+
+        const appContainer = document.getElementById('app');
+
+        // --- FILTERING LOGIC ---
+        function getFilteredSpices() {
+            const cleanTerm = searchQuery.trim().toLowerCase();
+            if (!cleanTerm) return SPICE_DATA;
+
+            return SPICE_DATA.filter(spice => {
+                const lowerName = spice.name.toLowerCase();
+                // Match if whole string starts with it, OR any individual word starts with it
+                return lowerName.startsWith(cleanTerm) || 
+                       lowerName.split(' ').some(word => word.startsWith(cleanTerm));
+            });
+        }
+
+        function getOrganizedShelves(filteredSpices) {
+            const itemsPerShelf = Math.ceil(filteredSpices.length / 4) || 11;
+            const shelves = [];
+            let currentIdx = 0;
+            
+            for (let i = 0; i < 4; i++) {
+                if (currentIdx < filteredSpices.length) {
+                    const sliceEnd = searchQuery ? currentIdx + 11 : currentIdx + itemsPerShelf;
+                    shelves.push(filteredSpices.slice(currentIdx, sliceEnd));
+                    currentIdx = sliceEnd;
+                } else {
+                    shelves.push([]); // Empty shelf
+                }
+            }
+            return shelves;
+        }
+
+        // --- HTML GENERATORS ---
+        function createJarHTML(spice) {
+            return `
+                <div class="flex flex-col items-center cursor-pointer group transition-all duration-300 hover:-translate-y-3 hover:scale-105 hover:z-50 relative w-16 sm:w-20 md:w-24 shrink-0" onclick="handleSpiceClick('${spice.id}')">
+                  <!-- Lid -->
+                  <div class="w-[110%] h-4 sm:h-5 bg-gradient-to-r from-gray-400 via-gray-300 to-gray-500 rounded-t-sm border-b-2 border-gray-600 shadow-[inset_0_-1px_4px_rgba(0,0,0,0.3)] z-20 relative">
+                    <div class="absolute inset-0 flex flex-col justify-evenly opacity-30">
+                      <div class="h-[1px] w-full bg-black"></div>
+                      <div class="h-[1px] w-full bg-black"></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Neck -->
+                  <div class="w-[105%] h-2 sm:h-3 bg-white/20 backdrop-blur-md border-l border-r border-white/30 z-10"></div>
+                  
+                  <!-- Body -->
+                  <div class="w-full h-24 sm:h-32 bg-white/10 backdrop-blur-sm rounded-b-2xl border-2 border-white/20 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.6)] relative overflow-hidden flex justify-center items-center group-hover:bg-white/20 transition-colors">
+                     <!-- Glass Glare -->
+                     <div class="absolute left-1 top-2 bottom-4 w-2 bg-gradient-to-b from-white/40 to-transparent rounded-full blur-[1px] z-20 pointer-events-none"></div>
+                     <div class="absolute right-1 top-4 w-1 h-8 bg-white/20 rounded-full blur-[1px] z-20 pointer-events-none"></div>
+                     
+                     <!-- Spice Fill -->
+                     <div class="absolute bottom-0 w-full h-[75%] z-0 transition-transform duration-300 group-hover:scale-105" 
+                          style="background: radial-gradient(circle at center, ${spice.color} 0%, ${spice.textureColor} 100%); box-shadow: inset 0 4px 6px rgba(0,0,0,0.4);">
+                        <div class="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAiLz4KPHBhdGggZD0iTTAgMEw0IDRaTTQgMEwwIDRaIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')]"></div>
+                     </div>
+                     
+                     <!-- Label -->
+                     <div class="relative bg-[#fdf5e6] px-1 sm:px-2 py-1 text-[9px] sm:text-[10px] md:text-xs font-serif text-amber-950 border border-amber-900/40 rounded shadow-md z-30 text-center w-[90%] transform -rotate-2 group-hover:rotate-0 transition-transform flex items-center justify-center min-h-[36px]">
+                        <div class="border border-amber-900/20 p-0.5 border-dashed w-full h-full flex items-center justify-center">
+                          <span class="font-bold leading-tight line-clamp-2">${spice.name}</span>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+            `;
+        }
+
+        function createShelfHTML(jarsHTML) {
+            return `
+            <div class="relative w-full px-4 sm:px-8 md:px-12 pt-8 pb-1">
+                <div class="absolute bottom-0 left-0 w-full h-6 sm:h-8 bg-gradient-to-b from-[#5c3a21] to-[#2E1D0F] shadow-[0_12px_24px_rgba(0,0,0,0.9)] border-t-2 border-[#805030] z-30">
+                  <div class="w-full h-[1px] bg-white/10"></div>
+                </div>
+                <div class="absolute bottom-6 sm:bottom-8 left-0 w-full h-12 bg-black/60 blur-xl z-0"></div>
+                
+                <div class="relative z-10 flex gap-x-1 sm:gap-x-3 md:gap-x-5 flex-wrap justify-center items-end min-h-[140px]">
+                  ${jarsHTML}
+                </div>
+            </div>
+            `;
+        }
+
+        // --- RENDERERS ---
+        function renderShelves() {
+            const container = document.getElementById('shelves-container');
+            if (!container) return;
+
+            const filteredSpices = getFilteredSpices();
+            const shelves = getOrganizedShelves(filteredSpices);
+
+            let allShelvesHTML = '';
+            
+            shelves.forEach((shelfSpices, shelfIdx) => {
+                let jarsHTML = shelfSpices.map(createJarHTML).join('');
+                
+                // Show "Not Found" message on first empty shelf if searching
+                if (shelfSpices.length === 0 && shelfIdx === 0 && searchQuery) {
+                    jarsHTML = `
+                     <div class="absolute inset-0 flex items-center justify-center text-amber-700/70 font-serif italic z-20">
+                       <div class="text-center bg-black/40 p-6 rounded-lg backdrop-blur-sm">
+                         <i data-lucide="search" class="mx-auto text-amber-600 mb-2 block w-10 h-10"></i>
+                         No spices found starting with "${searchQuery}".
+                       </div>
+                     </div>
+                    `;
+                }
+                allShelvesHTML += createShelfHTML(jarsHTML);
+            });
+
+            container.innerHTML = allShelvesHTML;
+            lucide.createIcons();
+        }
+
+        function renderCabinetBase() {
+            appContainer.innerHTML = `
+            <div class="max-w-[1200px] mx-auto relative z-10 pt-6 pb-20 px-2 sm:px-4 fade-in">
+              <div class="mb-10 text-center bg-[#2E1D0F]/90 p-6 md:p-8 rounded-xl border-4 border-[#4A3018] shadow-2xl backdrop-blur-sm relative overflow-hidden">
+                <h1 class="text-4xl md:text-5xl font-serif font-bold text-[#Fdf5e6] tracking-wide mb-2 drop-shadow-md">
+                  The Spice Library
+                </h1>
+                <p class="text-amber-500/80 font-serif italic mb-6">A collection of essential flavors, origins, and applications</p>
+                
+                <div class="max-w-md mx-auto relative group">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="h-5 w-5 text-amber-900 group-focus-within:text-amber-700 transition-colors"></i>
+                  </div>
+                  <input
+                    id="search-input"
+                    type="text"
+                    class="block w-full pl-10 pr-3 py-3 border-2 border-amber-900/50 rounded-lg leading-5 bg-[#Fdf5e6] text-amber-950 placeholder-amber-900/50 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-amber-600 transition-all font-serif"
+                    placeholder="Type the start of a spice name..."
+                    value="${searchQuery}"
+                  />
+                </div>
+              </div>
+
+              <!-- Cabinet Main Frame -->
+              <div class="bg-[#301f14] rounded-t-md border-x-[16px] border-t-[16px] border-[#1f120a] shadow-[inset_0_30px_50px_rgba(0,0,0,0.9)] relative pb-2">
+                
+                <div class="absolute inset-y-0 left-0 w-8 md:w-16 bg-gradient-to-r from-black/80 to-transparent z-20 pointer-events-none"></div>
+                <div class="absolute inset-y-0 right-0 w-8 md:w-16 bg-gradient-to-l from-black/80 to-transparent z-20 pointer-events-none"></div>
+
+                <div id="shelves-container" class="flex flex-col gap-2 pt-2 pb-8">
+                    <!-- Shelves render dynamically here -->
+                </div>
+
+                 <div class="absolute bottom-4 left-6 md:left-12 z-40 opacity-80 flex items-center gap-3 text-amber-600/60 font-serif text-sm pointer-events-none">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-stone-400 drop-shadow-lg">
+                      <path d="M14 4L10 10" />
+                      <path d="M7 11c-2.2 0-4 1.8-4 4s1.8 4 4 4h10c2.2 0 4-1.8 4-4s-1.8-4-4-4H7z" />
+                      <path d="M5 11h14" />
+                    </svg>
+                    <div class="hidden sm:block leading-tight">Freshly ground<br/>is always better</div>
+                 </div>
+              </div>
+
+              <!-- Cabinet Bottom Ledge -->
+              <div class="h-10 sm:h-14 bg-[#1f120a] shadow-[0_25px_50px_rgba(0,0,0,1)] rounded-b-md border-t-4 border-[#3a2213]"></div>
+            </div>
+            `;
+
+            // Attach event listener directly to input
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                renderShelves();
+            });
+
+            // Focus management
+            searchInput.focus();
+            const val = searchInput.value;
+            searchInput.value = '';
+            searchInput.value = val;
+
+            lucide.createIcons();
+            renderShelves();
+        }
+
+        function renderSpiceView() {
+            const spice = selectedSpice;
+            
+            const complementsHTML = spice.complements.map(comp => 
+                `<span class="bg-[#5c3a21] text-amber-50 px-4 py-2 rounded-full text-sm font-sans shadow-md">${comp}</span>`
+            ).join('');
+
+            const recipesHTML = spice.recipes.map((recipe, idx) => `
+                <div onclick="handleRecipeClick('${spice.id}', ${idx})" class="bg-white p-5 rounded-lg shadow-sm border border-amber-900/10 hover:shadow-lg hover:border-amber-900/30 transition-all cursor-pointer group">
+                  <h4 class="font-bold text-lg text-[#5c3a21] mb-2 group-hover:text-amber-700 transition-colors">${recipe.title}</h4>
+                  <p class="text-amber-800/80 font-sans">${recipe.desc}</p>
+                </div>
+            `).join('');
+
+            appContainer.innerHTML = `
+            <div class="max-w-4xl mx-auto pt-8 pb-20 px-4 fade-in relative z-50">
+              <button onclick="navigate('cabinet')" class="mb-6 flex items-center gap-2 text-amber-500 hover:text-amber-300 transition-colors font-serif text-lg group">
+                <i data-lucide="arrow-left" class="group-hover:-translate-x-1 transition-transform"></i>
+                Go Back to Cabinet
+              </button>
+              
+              <div class="bg-[#Fdf5e6] rounded-xl shadow-2xl overflow-hidden border border-amber-900/20">
+                <div class="bg-[#5c3a21] text-[#Fdf5e6] p-6 flex justify-between items-center relative overflow-hidden">
+                  <div class="absolute -right-4 -top-4 opacity-10">
+                    <i data-lucide="chef-hat" style="width: 160px; height: 160px;"></i>
+                  </div>
+                  <h2 class="text-4xl font-serif font-bold relative z-10">${spice.name}</h2>
+                </div>
+
+                <div class="p-8 flex flex-col gap-8 text-amber-950 font-serif">
+                  
+                  <div class="flex gap-4 items-start bg-amber-100/50 p-6 rounded-lg border border-amber-200">
+                    <i data-lucide="info" class="text-[#5c3a21] shrink-0 mt-1" style="width: 24px; height: 24px;"></i>
+                    <p class="text-xl leading-relaxed italic">${spice.description}</p>
+                  </div>
+
+                  <div>
+                    <h3 class="text-2xl font-bold border-b-2 border-amber-900/20 pb-2 mb-4 flex items-center gap-2">
+                      <i data-lucide="sparkles" class="text-amber-600"></i>
+                      Pairs Well With
+                    </h3>
+                    <div class="flex flex-wrap gap-3">
+                      ${complementsHTML}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 class="text-2xl font-bold border-b-2 border-amber-900/20 pb-2 mb-4 flex items-center gap-2">
+                      <i data-lucide="book-open" class="text-amber-600"></i>
+                      Featured Recipes <span class="text-sm font-normal text-amber-700/80 ml-2 font-sans">(Click to view full recipe)</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      ${recipesHTML}
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="h-3 w-full bg-gradient-to-r from-[#5c3a21] via-amber-700 to-[#5c3a21]"></div>
+              </div>
+            </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderRecipeView() {
+            const spice = selectedSpice;
+            const recipe = selectedRecipe;
+
+            const ingredientsHTML = recipe.ingredients.map(ing => `
+                <li class="flex items-start gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-600 mt-2 shrink-0"></span>
+                  <span class="leading-snug">${ing}</span>
+                </li>
+            `).join('');
+
+            const instructionsHTML = recipe.instructions.map((step, i) => `
+                <div class="flex gap-4">
+                  <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#5c3a21] text-white flex items-center justify-center font-bold shadow-sm">
+                    ${i + 1}
+                  </div>
+                  <p class="text-lg leading-relaxed pt-1 text-amber-950/90">
+                    ${step}
+                  </p>
+                </div>
+            `).join('');
+
+            appContainer.innerHTML = `
+            <div class="max-w-4xl mx-auto pt-8 pb-20 px-4 slide-in-right relative z-50">
+              <button onclick="navigate('spice')" class="mb-6 flex items-center gap-2 text-amber-500 hover:text-amber-300 transition-colors font-serif text-lg group">
+                <i data-lucide="arrow-left" class="group-hover:-translate-x-1 transition-transform"></i>
+                Back to ${spice.name}
+              </button>
+              
+              <div class="bg-[#Fdf5e6] rounded-xl shadow-2xl overflow-hidden border border-amber-900/20">
+                <div class="bg-[#2E1D0F] text-[#Fdf5e6] p-8 relative overflow-hidden">
+                  <div class="relative z-10">
+                    <h2 class="text-4xl font-serif font-bold mb-3">${recipe.title}</h2>
+                    <p class="text-amber-400/90 font-sans text-lg">${recipe.desc}</p>
+                  </div>
+                  <div class="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-amber-900/40 to-transparent pointer-events-none"></div>
+                </div>
+
+                <div class="p-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-amber-950 font-serif">
+                  
+                  <div class="md:col-span-1 bg-amber-50 p-6 rounded-lg border border-amber-200/50 h-fit shadow-sm">
+                    <h3 class="text-xl font-bold border-b-2 border-amber-900/10 pb-2 mb-4 flex items-center gap-2 text-amber-900">
+                      <i data-lucide="chef-hat" style="width: 20px; height: 20px;"></i>
+                      Ingredients
+                    </h3>
+                    <ul class="space-y-3 font-sans text-amber-900/90">
+                      ${ingredientsHTML}
+                    </ul>
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <h3 class="text-2xl font-bold border-b-2 border-amber-900/20 pb-2 mb-6 flex items-center gap-2 text-amber-900">
+                      <i data-lucide="book-open"></i>
+                      Instructions
+                    </h3>
+                    <div class="space-y-6">
+                      ${instructionsHTML}
+                    </div>
+                  </div>
+
+                </div>
+                
+                <div class="h-3 w-full bg-gradient-to-r from-[#2E1D0F] to-[#5c3a21]"></div>
+              </div>
+            </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // --- NAVIGATION & HANDLERS ---
+        window.navigate = function(view) {
+            currentView = view;
+            window.scrollTo(0, 0);
+
+            if (view === 'cabinet') {
+                renderCabinetBase();
+            } else if (view === 'spice') {
+                renderSpiceView();
+            } else if (view === 'recipe') {
+                renderRecipeView();
+            }
+        };
+
+        window.handleSpiceClick = function(spiceId) {
+            selectedSpice = SPICE_DATA.find(s => s.id === spiceId);
+            navigate('spice');
+        };
+
+        window.handleRecipeClick = function(spiceId, recipeIdx) {
+            selectedSpice = SPICE_DATA.find(s => s.id === spiceId);
+            selectedRecipe = selectedSpice.recipes[recipeIdx];
+            navigate('recipe');
+        };
+
+        // --- INITIALIZE APP ---
+        document.addEventListener('DOMContentLoaded', () => {
+            navigate('cabinet');
+        });
+
+    </script>
+</body>
+</html>

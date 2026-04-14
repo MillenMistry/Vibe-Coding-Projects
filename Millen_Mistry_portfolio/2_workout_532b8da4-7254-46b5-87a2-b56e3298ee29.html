@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniFit | Elite Tracker & Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #3b82f6;
+            --brand-success: #10b981;
+            --brand-bg: #0f172a;
+        }
+        body {
+            background-color: var(--brand-bg);
+            color: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        input, select, textarea {
+            background: #1e293b !important;
+            border: 1px solid #334155 !important;
+            color: white !important;
+        }
+        input:focus {
+            border-color: var(--brand-primary) !important;
+            outline: none;
+        }
+        .step-hidden { display: none; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        #rest-timer-ui {
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translate(-50%, -150%);
+        }
+        #rest-timer-ui.active { transform: translate(-50%, 0); }
+        
+        .set-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #334155; transition: all 0.3s; }
+        .set-dot.active { background-color: var(--brand-primary); border-color: var(--brand-primary); box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+    </style>
+</head>
+<body class="pb-24">
+
+    <!-- REST TIMER OVERLAY -->
+    <div id="rest-timer-ui" class="fixed top-6 left-1/2 z-[200] w-[90%] max-w-xs">
+        <div class="bg-blue-600 text-white p-4 rounded-2xl font-black shadow-2xl flex items-center justify-between border-2 border-white/20">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-stopwatch animate-pulse text-xl"></i>
+                <div>
+                    <p class="text-[10px] uppercase opacity-70 leading-none">Resting</p>
+                    <span id="timer-display" class="text-xl">01:00</span>
+                </div>
+            </div>
+            <button onclick="stopTimer()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm transition-colors">Skip</button>
+        </div>
+    </div>
+
+    <!-- SETUP SURVEY OVERLAY -->
+    <div id="survey-overlay" class="fixed inset-0 z-[100] bg-slate-900 overflow-y-auto p-6 hidden">
+        <div class="max-w-md mx-auto space-y-8 py-10 fade-in" id="survey-container">
+            <div class="text-center">
+                <h1 class="text-4xl font-black text-blue-500 tracking-tighter">OmniFit</h1>
+                <p class="text-slate-400 mt-2">Personalize your performance.</p>
+            </div>
+            <div id="survey-steps">
+                <!-- STEP 0: Units -->
+                <div class="survey-step space-y-5">
+                    <h2 class="text-xl font-bold border-l-4 border-blue-500 pl-3">Measurement System</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="setUnits('metric')" id="unit-metric" class="p-6 rounded-2xl border-2 border-slate-700 bg-slate-800/50 font-bold transition-all">Metric</button>
+                        <button onclick="setUnits('imperial')" id="unit-imperial" class="p-6 rounded-2xl border-2 border-slate-700 bg-slate-800/50 font-bold transition-all">Imperial</button>
+                    </div>
+                    <button onclick="validateStep(0)" class="w-full bg-blue-600 p-4 rounded-xl font-bold mt-4">Continue</button>
+                </div>
+                <!-- STEP 1: Profile -->
+                <div class="survey-step step-hidden space-y-5">
+                    <h2 class="text-xl font-bold border-l-4 border-blue-500 pl-3">Profile</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="number" id="s-age" placeholder="Age" class="p-3 rounded-lg" required>
+                        <select id="s-sex" class="p-3 rounded-lg">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                    <input type="number" id="s-weight" placeholder="Weight" class="w-full p-3 rounded-lg" required>
+                    <div id="height-metric-container">
+                        <input type="number" id="s-height-cm" placeholder="Height (cm)" class="w-full p-3 rounded-lg">
+                    </div>
+                    <div id="height-imperial-container" class="hidden grid grid-cols-2 gap-2">
+                        <input type="number" id="s-height-ft" placeholder="ft" class="p-3 rounded-lg">
+                        <input type="number" id="s-height-in" placeholder="in" class="p-3 rounded-lg">
+                    </div>
+                    <button onclick="validateStep(1)" class="w-full bg-blue-600 p-4 rounded-xl font-bold">Next</button>
+                </div>
+                <!-- STEP 2: Goal -->
+                <div class="survey-step step-hidden space-y-5">
+                    <h2 class="text-xl font-bold border-l-4 border-blue-500 pl-3">Primary Goal</h2>
+                    <div class="grid gap-3">
+                        <button onclick="setGoal('lose')" class="p-4 border-2 border-slate-700 rounded-xl text-left hover:border-blue-500 transition-all">🔥 Fat Loss</button>
+                        <button onclick="setGoal('maintain')" class="p-4 border-2 border-slate-700 rounded-xl text-left hover:border-blue-500 transition-all">⚖️ Maintenance</button>
+                        <button onclick="setGoal('gain')" class="p-4 border-2 border-slate-700 rounded-xl text-left hover:border-blue-500 transition-all">💪 Muscle Gain</button>
+                    </div>
+                </div>
+                <!-- STEP 3: Complete -->
+                <div class="survey-step step-hidden space-y-6 text-center">
+                    <div class="text-6xl text-green-500"><i class="fas fa-check-circle"></i></div>
+                    <h2 class="text-2xl font-bold">You're All Set</h2>
+                    <button onclick="finishSurvey()" class="w-full bg-blue-600 p-4 rounded-xl font-bold">Enter Dashboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app" class="hidden min-h-screen">
+        <header class="p-6 pb-2 max-w-2xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-black italic tracking-tighter">OMNIFIT</h1>
+            <div class="flex items-center gap-3">
+                <div id="display-goal" class="text-[9px] font-black text-blue-400 uppercase bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 tracking-widest">Maintain</div>
+                <button onclick="clearStorage()" class="text-slate-600 hover:text-red-500 transition-colors"><i class="fas fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <div id="training-nav" class="max-w-2xl mx-auto px-6 mt-4 flex gap-4 hidden">
+            <button onclick="setWorkoutMode('active')" id="mode-active" class="text-sm font-bold pb-2 border-b-2 border-blue-500">Active Session</button>
+            <button onclick="setWorkoutMode('planner')" id="mode-planner" class="text-sm font-bold pb-2 border-b-2 border-transparent text-slate-500">Future Planner</button>
+        </div>
+
+        <main id="view-container" class="max-w-2xl mx-auto p-6 space-y-6 fade-in"></main>
+
+        <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 py-4 px-8 z-50">
+            <div class="max-w-2xl mx-auto flex justify-between items-center">
+                <button onclick="switchTab('workout')" id="nav-workout" class="flex flex-col items-center gap-1 transition-colors text-slate-400"><i class="fas fa-dumbbell text-lg"></i><span class="text-[9px] font-bold uppercase tracking-widest">Train</span></button>
+                <button onclick="switchTab('nutrition')" id="nav-nutrition" class="flex flex-col items-center gap-1 transition-colors text-slate-400"><i class="fas fa-utensils text-lg"></i><span class="text-[9px] font-bold uppercase tracking-widest">Fuel</span></button>
+                <button onclick="switchTab('analytics')" id="nav-analytics" class="flex flex-col items-center gap-1 transition-colors text-slate-400"><i class="fas fa-history text-lg"></i><span class="text-[9px] font-bold uppercase tracking-widest">Log</span></button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- EXERCISE SELECTOR MODAL -->
+    <div id="exercise-modal" class="fixed inset-0 z-[300] hidden p-6 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="glass-card w-full max-w-md p-6 max-h-[85vh] overflow-hidden flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Library</h2>
+                <button onclick="closeExerciseModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <input type="text" id="lib-search" placeholder="Search exercises..." class="w-full p-3 rounded-xl text-sm mb-4 border-none outline-none" onkeyup="filterLibrary()">
+            <div id="exercise-list" class="space-y-2 overflow-y-auto pr-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+        
+        let state = {
+            onboarded: false,
+            units: null, // Start null to force selection
+            workoutMode: 'active',
+            user: { weight: 0, height: 0, age: 0, goal: 'maintain', caloriesGoal: 2000, caloriesConsumed: 0, logs: [] },
+            activeWorkout: [], 
+            plannedWorkout: [],
+            history: [],
+            currentTab: 'workout'
+        };
+
+        const library = [
+            { id: 'bp', name: 'Bench Press (Barbell)', cat: 'Chest' },
+            { id: 'idp', name: 'Incline DB Press', cat: 'Chest' },
+            { id: 'df', name: 'Dumbbell Flys', cat: 'Chest' },
+            { id: 'cc', name: 'Cable Crossovers', cat: 'Chest' },
+            { id: 'pu_c', name: 'Push Ups', cat: 'Chest' },
+            { id: 'dc', name: 'Dips (Chest Focus)', cat: 'Chest' },
+            { id: 'dl', name: 'Deadlift (Conventional)', cat: 'Back' },
+            { id: 'pu', name: 'Pull Ups', cat: 'Back' },
+            { id: 'lat', name: 'Lat Pulldowns', cat: 'Back' },
+            { id: 'bor', name: 'Bent Over Row (Barbell)', cat: 'Back' },
+            { id: 'swr', name: 'Seated Wide Row', cat: 'Back' },
+            { id: 'tr', name: 'T-Bar Row', cat: 'Back' },
+            { id: 'hyp', name: 'Hyperextensions', cat: 'Back' },
+            { id: 'sq', name: 'Squat (Barbell)', cat: 'Legs' },
+            { id: 'lp', name: 'Leg Press', cat: 'Legs' },
+            { id: 'le', name: 'Leg Extensions', cat: 'Legs' },
+            { id: 'lc', name: 'Leg Curls', cat: 'Legs' },
+            { id: 'lu', name: 'Lunges (Dumbbell)', cat: 'Legs' },
+            { id: 'rdl', name: 'Romanian Deadlift', cat: 'Legs' },
+            { id: 'gs', name: 'Goblet Squats', cat: 'Legs' },
+            { id: 'ohp', name: 'Overhead Press (Barbell)', cat: 'Shoulders' },
+            { id: 'lr', name: 'Lateral Raises', cat: 'Shoulders' },
+            { id: 'fr', name: 'Front Raises', cat: 'Shoulders' },
+            { id: 'sdp', name: 'Seated DB Press', cat: 'Shoulders' },
+            { id: 'rf', name: 'Rear Delt Flys', cat: 'Shoulders' },
+            { id: 'sr', name: 'Shrugs (Dumbbell)', cat: 'Shoulders' },
+            { id: 'bc', name: 'Bicep Curls (Barbell)', cat: 'Arms' },
+            { id: 'hc', name: 'Hammer Curls', cat: 'Arms' },
+            { id: 'cc_a', name: 'Concentration Curls', cat: 'Arms' },
+            { id: 'td', name: 'Tricep Pushdowns (Cable)', cat: 'Arms' },
+            { id: 'se', name: 'Skull Crushers', cat: 'Arms' },
+            { id: 'ote', name: 'Overhead Tricep Extension', cat: 'Arms' },
+            { id: 'pl', name: 'Plank', cat: 'Core' },
+            { id: 'cr', name: 'Crunches', cat: 'Core' },
+            { id: 'll', name: 'Leg Raises (Hanging)', cat: 'Core' },
+            { id: 'rt', name: 'Russian Twists', cat: 'Core' },
+            { id: 'wf', name: 'Woodchoppers (Cable)', cat: 'Core' },
+            { id: 'scr', name: 'Standing Calf Raises', cat: 'Calves' },
+            { id: 'secr', name: 'Seated Calf Raises', cat: 'Calves' }
+        ];
+
+        const lbsToKg = (l) => parseFloat(l) / 2.20462;
+        const ftInToCm = (f, i) => ((parseFloat(f || 0) * 12) + parseFloat(i || 0)) * 2.54;
+
+        function saveToLocal() { localStorage.setItem('omnifit_v4_state', JSON.stringify(state)); }
+        
+        function loadFromLocal() {
+            const saved = localStorage.getItem('omnifit_v4_state');
+            if (saved) {
+                state = JSON.parse(saved);
+                if (state.onboarded) {
+                    document.getElementById('survey-overlay').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    const goalEl = document.getElementById('display-goal');
+                    if (goalEl) goalEl.innerText = state.user.goal;
+                    switchTab(state.currentTab);
+                } else {
+                    document.getElementById('survey-overlay').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('survey-overlay').classList.remove('hidden');
+            }
+        }
+
+        function clearStorage() { localStorage.removeItem('omnifit_v4_state'); location.reload(); }
+
+        let timerInterval;
+        function startTimer() {
+            stopTimer();
+            let timeLeft = 60;
+            document.getElementById('rest-timer-ui').classList.add('active');
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                document.getElementById('timer-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) stopTimer();
+            }, 1000);
+        }
+        function stopTimer() {
+            clearInterval(timerInterval);
+            document.getElementById('rest-timer-ui').classList.remove('active');
+        }
+
+        function switchTab(t) {
+            state.currentTab = t;
+            saveToLocal();
+            const mount = document.getElementById('view-container');
+            mount.innerHTML = '';
+            document.querySelectorAll('nav button').forEach(b => {
+                b.classList.remove('text-blue-500');
+                b.classList.add('text-slate-400');
+            });
+            const navBtn = document.getElementById(`nav-${t}`);
+            if (navBtn) {
+                navBtn.classList.add('text-blue-500');
+                navBtn.classList.remove('text-slate-400');
+            }
+            document.getElementById('training-nav').classList.toggle('hidden', t !== 'workout');
+
+            if(t === 'workout') renderWorkout(mount);
+            if(t === 'nutrition') renderNutrition(mount);
+            if(t === 'analytics') renderAnalytics(mount);
+        }
+
+        function setWorkoutMode(m) {
+            state.workoutMode = m;
+            document.getElementById('mode-active').className = `text-sm font-bold pb-2 border-b-2 ${m === 'active' ? 'border-blue-500 text-white' : 'border-transparent text-slate-500'}`;
+            document.getElementById('mode-planner').className = `text-sm font-bold pb-2 border-b-2 ${m === 'planner' ? 'border-blue-500 text-white' : 'border-transparent text-slate-500'}`;
+            renderWorkout(document.getElementById('view-container'));
+        }
+
+        function renderWorkout(mount) {
+            const label = state.units === 'metric' ? 'kg' : 'lbs';
+            const list = state.workoutMode === 'active' ? state.activeWorkout : state.plannedWorkout;
+            
+            mount.innerHTML = `
+                ${state.workoutMode === 'active' && list.length > 0 ? `
+                    <div class="glass-card p-4 border-l-4 border-emerald-500 bg-emerald-500/5 mb-4">
+                        <div class="flex gap-3">
+                            <i class="fas fa-info-circle text-emerald-500 mt-1"></i>
+                            <div class="text-xs">
+                                <p class="font-bold text-emerald-400 uppercase tracking-wider mb-1">How to log</p>
+                                <p class="text-slate-300 leading-relaxed">After each set, tap <span class="font-bold text-white">"LOG SET"</span>. This starts your rest timer and tracks your progress.</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">${state.workoutMode === 'active' ? 'Live Session' : 'Workout Planner'}</h2>
+                    <button onclick="openExerciseModal()" class="text-blue-500 text-[10px] font-black uppercase tracking-widest bg-blue-500/10 px-3 py-1.5 rounded-lg">+ Add Exercise</button>
+                </div>
+
+                ${list.length === 0 ? `
+                    <div class="glass-card p-12 text-center text-slate-500 border-dashed border-2 border-slate-800">
+                        <i class="fas fa-calendar-plus text-4xl mb-4 opacity-20"></i>
+                        <p class="text-sm">${state.workoutMode === 'active' ? 'Your session is empty.' : 'No future plans yet.'}</p>
+                    </div>
+                ` : list.map((ex, idx) => `
+                    <div class="glass-card p-5 mb-4 border-l-4 ${state.workoutMode === 'active' ? 'border-blue-500' : 'border-slate-600'}">
+                        <div class="flex justify-between mb-4 items-start">
+                            <div>
+                                <span class="font-bold text-base">${ex.name}</span>
+                                <p class="text-[10px] text-slate-500 uppercase font-black">${ex.cat}</p>
+                            </div>
+                            <button onclick="removeEx(${idx})" class="text-slate-600 hover:text-red-500"><i class="fas fa-times-circle"></i></button>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-3 mb-4">
+                            <div>
+                                <label class="text-[9px] uppercase text-slate-500 font-black mb-1 block">Weight (${label})</label>
+                                <input type="number" value="${ex.targetWeight}" onchange="updateEx(${idx}, 'targetWeight', this.value)" class="w-full p-2 rounded-xl text-sm font-bold border-none">
+                            </div>
+                            <div>
+                                <label class="text-[9px] uppercase text-slate-500 font-black mb-1 block">Sets</label>
+                                <input type="number" min="1" value="${ex.sets}" onchange="updateEx(${idx}, 'sets', this.value)" class="w-full p-2 rounded-xl text-sm font-bold border-none">
+                            </div>
+                            <div>
+                                <label class="text-[9px] uppercase text-slate-500 font-black mb-1 block">Reps</label>
+                                <input type="number" min="1" value="${ex.reps}" onchange="updateEx(${idx}, 'reps', this.value)" class="w-full p-2 rounded-xl text-sm font-bold border-none">
+                            </div>
+                        </div>
+
+                        ${state.workoutMode === 'active' ? `
+                            <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+                                <div class="flex gap-2 flex-wrap" id="dots-${ex.currentId}">
+                                    ${renderDots(ex.currentId, ex.sets, ex.setsCompleted)}
+                                </div>
+                                <button onclick="logSet('${ex.currentId}')" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                                    + LOG SET
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('')}
+                
+                ${state.workoutMode === 'planner' && list.length > 0 ? `<button onclick="startPlannedWorkout()" class="w-full bg-blue-600 p-4 rounded-2xl font-black mt-4">START THIS ROUTINE</button>` : ''}
+                ${state.workoutMode === 'active' && list.length > 0 ? `<button onclick="finishSession()" class="w-full bg-emerald-600 p-4 rounded-2xl font-black mt-4">FINISH & SAVE SESSION</button>` : ''}
+            `;
+        }
+
+        function renderDots(id, total, completed) {
+            let html = '';
+            for(let i=0; i < total; i++) {
+                html += `<div class="set-dot ${i < completed ? 'active' : ''}"></div>`;
+            }
+            return html;
+        }
+
+        function logSet(id) {
+            const ex = state.activeWorkout.find(x => x.currentId == id);
+            if (ex) {
+                if (ex.setsCompleted < ex.sets) {
+                    ex.setsCompleted++;
+                } else {
+                    ex.sets++;
+                    ex.setsCompleted++;
+                }
+                saveToLocal();
+                renderWorkout(document.getElementById('view-container'));
+                startTimer();
+            }
+        }
+
+        function updateEx(idx, field, val) {
+            const list = state.workoutMode === 'active' ? state.activeWorkout : state.plannedWorkout;
+            list[idx][field] = parseInt(val) || 0;
+            saveToLocal();
+            renderWorkout(document.getElementById('view-container'));
+        }
+
+        function removeEx(idx) {
+            const list = state.workoutMode === 'active' ? state.activeWorkout : state.plannedWorkout;
+            list.splice(idx, 1);
+            saveToLocal();
+            renderWorkout(document.getElementById('view-container'));
+        }
+
+        function openExerciseModal() {
+            document.getElementById('exercise-modal').classList.remove('hidden');
+            filterLibrary();
+        }
+
+        function closeExerciseModal() { document.getElementById('exercise-modal').classList.add('hidden'); }
+
+        function filterLibrary() {
+            const term = document.getElementById('lib-search').value.toLowerCase();
+            const list = document.getElementById('exercise-list');
+            list.innerHTML = library.filter(ex => ex.name.toLowerCase().includes(term) || ex.cat.toLowerCase().includes(term)).map(ex => `
+                <button onclick="addExercise('${ex.id}')" class="w-full text-left p-4 bg-slate-800/50 rounded-2xl hover:bg-slate-700 transition-all flex justify-between items-center group">
+                    <div>
+                        <p class="font-bold text-sm group-hover:text-blue-400">${ex.name}</p>
+                        <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest">${ex.cat}</p>
+                    </div>
+                    <i class="fas fa-plus-circle text-blue-500 opacity-50 group-hover:opacity-100"></i>
+                </button>
+            `).join('');
+        }
+
+        function addExercise(id) {
+            const libItem = library.find(x => x.id === id);
+            const newEx = { ...libItem, targetWeight: state.units === 'metric' ? 20 : 45, sets: 3, reps: 10, setsCompleted: 0, currentId: Date.now() };
+            if (state.workoutMode === 'active') state.activeWorkout.push(newEx);
+            else state.plannedWorkout.push(newEx);
+            closeExerciseModal();
+            saveToLocal();
+            renderWorkout(document.getElementById('view-container'));
+        }
+
+        function startPlannedWorkout() {
+            state.activeWorkout = JSON.parse(JSON.stringify(state.plannedWorkout)).map(ex => ({...ex, setsCompleted: 0, currentId: Date.now()}));
+            state.workoutMode = 'active';
+            saveToLocal();
+            setWorkoutMode('active');
+        }
+
+        function finishSession() {
+            const inc = state.units === 'metric' ? 2.5 : 5;
+            state.plannedWorkout = state.activeWorkout.map(ex => ({
+                ...ex,
+                targetWeight: ex.targetWeight + inc,
+                setsCompleted: 0
+            }));
+            state.history.unshift({ date: new Date().toLocaleDateString(), count: state.activeWorkout.length });
+            state.activeWorkout = [];
+            saveToLocal();
+            showToast(`Session Saved! Weights increased by +${inc}${state.units === 'metric' ? 'kg' : 'lbs'}`);
+            switchTab('analytics');
+        }
+
+        async function logFood() {
+            const query = document.getElementById('food-input').value;
+            if(!query) return;
+            const btn = document.getElementById('log-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Estimating...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Estimate calories for: "${query}". Return JSON: {"total": number, "items": [{"name": string, "kcal": number}]}` }] }] })
+                });
+                const data = await response.json();
+                const result = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json|```/g, ''));
+                state.user.caloriesConsumed += result.total;
+                state.user.logs = state.user.logs || [];
+                state.user.logs.unshift({ date: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), total: result.total, detail: result.items.map(i => i.name).join(', ') });
+                document.getElementById('food-input').value = '';
+                saveToLocal();
+                switchTab('nutrition');
+            } catch (e) {
+                showToast("Try again later.");
+            } finally {
+                btn.innerHTML = 'LOG FOOD';
+                btn.disabled = false;
+            }
+        }
+
+        function renderNutrition(mount) {
+            const perc = Math.min((state.user.caloriesConsumed / state.user.caloriesGoal) * 100, 100);
+            mount.innerHTML = `
+                <div class="glass-card p-8 text-center border-b-4 border-emerald-500">
+                    <div class="mb-6">
+                        <span class="text-4xl font-black">${state.user.caloriesConsumed}</span>
+                        <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Consumed today / Goal: ${state.user.caloriesGoal}</p>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-8"><div class="bg-emerald-500 h-full transition-all duration-1000" style="width: ${perc}%"></div></div>
+                    <textarea id="food-input" placeholder="What did you eat?" class="w-full p-4 rounded-2xl text-sm h-24 outline-none resize-none border-none mb-4"></textarea>
+                    <button id="log-btn" onclick="logFood()" class="w-full bg-emerald-600 p-4 rounded-2xl font-black">LOG FOOD</button>
+                </div>
+                <div class="space-y-3">${(state.user.logs || []).map(l => `<div class="glass-card p-4 flex justify-between items-center text-sm border-l-2 border-emerald-500/30"><div class="flex-1 pr-4"><p class="font-bold text-slate-200 line-clamp-1">${l.detail}</p><p class="text-[10px] text-slate-500">${l.date}</p></div><span class="text-emerald-400 font-black">+${l.total}</span></div>`).join('')}</div>
+            `;
+        }
+
+        function renderAnalytics(mount) {
+            mount.innerHTML = `<h2 class="text-xl font-bold mb-4">Activity Log</h2><div class="space-y-2">${state.history.length === 0 ? '<p class="text-sm text-slate-500 p-8 text-center glass-card">No sessions recorded yet.</p>' : state.history.map(h => `<div class="glass-card p-5 flex justify-between items-center"><div><p class="font-bold text-sm">${h.date}</p><p class="text-xs text-slate-500">${h.count} Exercises Hit</p></div><i class="fas fa-check-circle text-emerald-500"></i></div>`).join('')}</div>`;
+        }
+
+        function setUnits(u) {
+            state.units = u;
+            document.querySelectorAll('#unit-metric, #unit-imperial').forEach(b => {
+                b.classList.remove('bg-blue-600', 'border-blue-500', 'scale-105', 'shadow-blue-500/50', 'shadow-lg');
+                b.classList.add('bg-slate-800/50', 'border-slate-700');
+            });
+            const unitBtn = document.getElementById(`unit-${u}`);
+            if (unitBtn) {
+                unitBtn.classList.add('bg-blue-600', 'border-blue-500', 'scale-105', 'shadow-blue-500/50', 'shadow-lg');
+                unitBtn.classList.remove('bg-slate-800/50', 'border-slate-700');
+            }
+            const mc = document.getElementById('height-metric-container');
+            const ic = document.getElementById('height-imperial-container');
+            if(mc) mc.classList.toggle('hidden', u === 'imperial');
+            if(ic) ic.classList.toggle('hidden', u === 'metric');
+            saveToLocal();
+        }
+
+        function validateStep(i) {
+            const container = document.getElementById('survey-container');
+            container.classList.remove('shake');
+
+            if (i === 0) {
+                if (!state.units) {
+                    showToast("Please select a measurement system.");
+                    container.classList.add('shake');
+                    return;
+                }
+            } else if (i === 1) {
+                const age = document.getElementById('s-age').value;
+                const weight = document.getElementById('s-weight').value;
+                let heightValid = false;
+
+                if (state.units === 'metric') {
+                    heightValid = !!document.getElementById('s-height-cm').value;
+                } else {
+                    heightValid = !!document.getElementById('s-height-ft').value;
+                }
+
+                if (!age || !weight || !heightValid) {
+                    showToast("All profile fields are required.");
+                    container.classList.add('shake');
+                    return;
+                }
+            }
+            
+            nextStep(i);
+        }
+
+        function nextStep(i) {
+            const steps = document.querySelectorAll('.survey-step');
+            steps[i].classList.add('step-hidden');
+            steps[i+1].classList.remove('step-hidden');
+        }
+
+        function setGoal(g) { state.user.goal = g; nextStep(2); }
+
+        function finishSurvey() {
+            const w = parseFloat(document.getElementById('s-weight').value) || 70;
+            state.user.age = parseInt(document.getElementById('s-age').value) || 25;
+            state.user.sex = document.getElementById('s-sex').value;
+            if(state.units === 'imperial') {
+                state.user.weight = lbsToKg(w);
+                state.user.height = ftInToCm(document.getElementById('s-height-ft').value, document.getElementById('s-height-in').value);
+            } else {
+                state.user.weight = w;
+                state.user.height = parseFloat(document.getElementById('s-height-cm').value) || 175;
+            }
+            let bmr = (10 * state.user.weight) + (6.25 * state.user.height) - (5 * state.user.age);
+            bmr = state.user.sex === 'male' ? bmr + 5 : bmr - 161;
+            state.user.tdee = Math.round(bmr * 1.3);
+            if(state.user.goal === 'lose') state.user.caloriesGoal = state.user.tdee - 500;
+            else if(state.user.goal === 'gain') state.user.caloriesGoal = state.user.tdee + 300;
+            else state.user.caloriesGoal = state.user.tdee;
+            state.onboarded = true;
+            saveToLocal();
+            document.getElementById('survey-overlay').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            const goalEl = document.getElementById('display-goal');
+            if (goalEl) goalEl.innerText = state.user.goal;
+            switchTab('workout');
+        }
+
+        function showToast(m) {
+            const existing = document.querySelector('.toast-msg');
+            if(existing) existing.remove();
+
+            const t = document.createElement('div');
+            t.className = "toast-msg fixed top-24 left-6 right-6 bg-red-600 text-white p-4 rounded-xl shadow-2xl z-[500] text-sm fade-in font-bold text-center";
+            t.innerText = m;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        window.onload = loadFromLocal;
+    </script>
+</body>
+</html>

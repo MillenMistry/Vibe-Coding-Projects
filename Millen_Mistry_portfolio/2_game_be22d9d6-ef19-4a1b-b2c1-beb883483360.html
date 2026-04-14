@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big Hot Flaming Pots - Deluxe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Goldman:wght@400;700&display=swap');
+
+        :root {
+            --gold: #facc15;
+            --fire: #ef4444;
+            --jade: #10b981;
+            --purple: #a855f7;
+        }
+
+        body {
+            background: #000;
+            background-image: radial-gradient(circle at center, #4a0404 0%, #000 100%);
+            color: white;
+            font-family: 'Goldman', cursive;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 12px;
+            background: rgba(0,0,0,0.6);
+            border-left: 2px solid #444;
+            border-right: 2px solid #444;
+            box-shadow: 0 0 100px rgba(0,0,0,1);
+        }
+
+        /* Header / Pot Housing Area - Increased height to accommodate growth */
+        .header-section {
+            flex: 0 0 240px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(20, 20, 20, 0.8);
+            border-radius: 16px;
+            border: 2px solid #333;
+            position: relative;
+            overflow: hidden; /* Keeps growth within the 'glass' */
+            padding: 10px;
+        }
+
+        .character-title {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: 2.2rem;
+            background: linear-gradient(to bottom, var(--gold), #ea580c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            margin-bottom: 5px;
+            z-index: 10;
+        }
+
+        /* THE POTS */
+        .pot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            height: 140px;
+            align-items: flex-end; /* Pots sit on the 'bottom' of the area */
+        }
+
+        .pot-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .pot-container {
+            width: 90px;
+            height: 90px;
+            border-radius: 50% 50% 42% 42%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: center bottom;
+            border: 3px solid #333;
+            box-shadow: inset 0 -8px 12px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Integrated Label inside the pot */
+        .pot-inner-label {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+            text-shadow: 0 0 4px black;
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        /* Specific Pot Colors */
+        .pot-green .pot-container { 
+            background: radial-gradient(circle at 30% 30%, #065f46, #022c22); 
+            border-color: var(--jade);
+            color: var(--jade);
+        }
+        .pot-red .pot-container { 
+            background: radial-gradient(circle at 30% 30%, #b91c1c, #450a0a); 
+            border-color: var(--fire);
+            color: var(--fire);
+        }
+        .pot-purple .pot-container { 
+            background: radial-gradient(circle at 30% 30%, #7e22ce, #2e1065); 
+            border-color: var(--purple);
+            color: var(--purple);
+        }
+
+        /* Pot Growth & Shaking */
+        .pot-container.growing { 
+            transform: scale(1.3); 
+            filter: brightness(1.2) drop-shadow(0 0 20px currentColor);
+            z-index: 20;
+        }
+        
+        .pot-shake { animation: potShake 0.15s infinite; }
+        @keyframes potShake {
+            0% { transform: rotate(-2deg) scale(1.3); }
+            50% { transform: rotate(2deg) scale(1.3); }
+            100% { transform: rotate(-2deg) scale(1.3); }
+        }
+
+        .pot-icon { font-size: 2.2rem; margin-top: 12px; transition: transform 0.3s; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+
+        /* Floating Tease Text */
+        .tease-bubble {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: black;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 900;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .animate-tease { animation: teaseFloat 1.2s forwards; }
+        @keyframes teaseFloat {
+            0% { opacity: 0; transform: translate(-50%, 0); }
+            20% { opacity: 1; transform: translate(-50%, -50px); }
+            100% { opacity: 0; transform: translate(-50%, -80px); }
+        }
+
+        /* Reels Section */
+        .reel-container {
+            flex: 1;
+            background: #050505;
+            border: 4px solid #222;
+            border-radius: 12px;
+            padding: 8px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 6px;
+            box-shadow: inset 0 0 50px #000;
+        }
+
+        .grid-cell {
+            background: linear-gradient(145deg, #0d0d0d, #181818);
+            border: 1px solid #222;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Symbol Styling */
+        .bun-symbol {
+            width: 90%;
+            height: 90%;
+            background: radial-gradient(circle at 30% 30%, #fff 0%, #fef3c7 60%, #fbbf24 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.8), inset 0 -3px 6px #b45309;
+            animation: symbolPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes symbolPop { from { transform: scale(0); } to { transform: scale(1); } }
+        .bun-value { color: #7f1d1d; font-weight: 900; font-size: 0.85rem; line-height: 1; margin-top: -2px; }
+
+        /* Footer Dashboard */
+        .dashboard {
+            flex: 0 0 auto;
+            background: #111;
+            border-radius: 20px 20px 0 0;
+            padding: 15px;
+            border-top: 2px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .spin-button {
+            width: 85px;
+            height: 85px;
+            background: radial-gradient(circle, #ef4444 0%, #7f1d1d 100%);
+            border: 4px solid var(--gold);
+            border-radius: 50%;
+            color: white;
+            font-weight: 900;
+            font-size: 1.1rem;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s;
+        }
+        .spin-button:active { transform: scale(0.92); }
+        .spin-button:disabled { filter: grayscale(1); opacity: 0.6; }
+
+        /* Trivia Overlay */
+        #trivia-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.98);
+            z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .trivia-card {
+            background: #1a1a1a; border: 4px solid var(--gold); border-radius: 20px;
+            padding: 24px; width: 100%; max-width: 380px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-shell" id="app-root">
+        <!-- Header: Machine Housing for Pots -->
+        <div class="header-section">
+            <h1 class="character-title">BAO NI 888</h1>
+            
+            <div class="pot-grid">
+                <!-- Green Pot -->
+                <div class="pot-wrapper pot-green">
+                    <div id="pot-green" class="pot-container">
+                        <div class="pot-inner-label">Yummy</div>
+                        <div id="tease-green" class="tease-bubble"></div>
+                        <span class="pot-icon">🥬</span>
+                    </div>
+                </div>
+
+                <!-- Red Pot -->
+                <div class="pot-wrapper pot-red">
+                    <div id="pot-red" class="pot-container">
+                        <div class="pot-inner-label">Spicy</div>
+                        <div id="tease-red" class="tease-bubble"></div>
+                        <span class="pot-icon">🌶️</span>
+                    </div>
+                </div>
+
+                <!-- Purple Pot -->
+                <div class="pot-wrapper pot-purple">
+                    <div id="pot-purple" class="pot-container">
+                        <div class="pot-inner-label">Lucky</div>
+                        <div id="tease-purple" class="tease-bubble"></div>
+                        <span class="pot-icon">🥟</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reels -->
+        <div id="game-board" class="reel-container"></div>
+
+        <!-- Bonus Counter -->
+        <div id="bonus-info" class="hidden flex flex-col items-center gap-1">
+            <div class="bg-red-600 text-white text-[10px] px-4 py-0.5 rounded-full font-black animate-pulse">LOCK & RESPIN</div>
+            <div class="text-3xl font-black text-white">SPINS: <span id="respin-count" class="text-yellow-400">3</span></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="dashboard">
+            <div class="flex flex-col">
+                <p class="text-[10px] text-zinc-500 font-bold uppercase">Balance</p>
+                <p id="balance" class="text-2xl text-green-500 font-black tracking-tighter">$0.00</p>
+                <button onclick="startTrivia('recharge')" class="text-[9px] text-zinc-400 underline mt-1 text-left uppercase">Get More Funds</button>
+            </div>
+
+            <div class="flex flex-col items-center">
+                <p class="text-[10px] text-zinc-500 font-bold uppercase">Bet</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <button onclick="changeBet(-0.88)" class="w-6 h-6 bg-zinc-800 rounded-full border border-zinc-600 font-bold text-xs">-</button>
+                    <span id="bet-val" class="text-lg font-black text-white w-14 text-center">$8.80</span>
+                    <button onclick="changeBet(0.88)" class="w-6 h-6 bg-zinc-800 rounded-full border border-zinc-600 font-bold text-xs">+</button>
+                </div>
+            </div>
+
+            <button id="spin-btn" onclick="handleSpin()" class="spin-button">SPIN</button>
+        </div>
+    </div>
+
+    <!-- Trivia -->
+    <div id="trivia-overlay">
+        <div class="trivia-card">
+            <h2 class="text-xl font-black text-yellow-500 mb-6 uppercase">Access Verification</h2>
+            <p id="trivia-q" class="text-lg text-white mb-8">Loading...</p>
+            <div id="trivia-options" class="grid grid-cols-1 gap-3"></div>
+            <p id="trivia-feedback" class="mt-4 font-bold text-lg"></p>
+        </div>
+    </div>
+
+    <script>
+        const QUESTIONS = [
+            { q: "What is the green pot labeled?", a: ["Lucky", "Spicy", "Yummy", "Hot"], c: 2 },
+            { q: "Which symbol triggers the bonus?", a: ["Cabbage", "Bun", "Pepper", "Envelope"], c: 1 },
+            { q: "What is 88 plus 12?", a: ["90", "100", "110", "108"], c: 1 },
+            { q: "What is the red pot labeled?", a: ["Sweet", "Cold", "Spicy", "Lucky"], c: 2 }
+        ];
+
+        let balance = 0;
+        let bet = 8.80;
+        let isSpinning = false;
+        let isBonus = false;
+        let respins = 3;
+        let potScales = { green: 1, red: 1, purple: 1 };
+        const cells = [];
+        const board = document.getElementById('game-board');
+
+        function init() {
+            for (let i = 0; i < 15; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                board.appendChild(cell);
+                cells.push({ el: cell, data: null });
+            }
+            startTrivia('initial');
+        }
+
+        function startTrivia(type) {
+            const overlay = document.getElementById('trivia-overlay');
+            const q = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+            const optionsDiv = document.getElementById('trivia-options');
+            const feedback = document.getElementById('trivia-feedback');
+            overlay.style.display = 'flex';
+            document.getElementById('trivia-q').innerText = q.q;
+            feedback.innerText = '';
+            optionsDiv.innerHTML = '';
+            q.a.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-zinc-800 hover:bg-zinc-700 py-3 rounded-lg font-bold border-b-2 border-black";
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (i === q.c) {
+                        balance += 500;
+                        feedback.innerText = "VERIFIED!";
+                        feedback.className = "mt-4 font-bold text-lg text-green-500";
+                        updateUI();
+                        setTimeout(() => overlay.style.display = 'none', 800);
+                    } else {
+                        feedback.innerText = "TRY AGAIN.";
+                        feedback.className = "mt-4 font-bold text-lg text-red-500";
+                        setTimeout(() => startTrivia(type), 800);
+                    }
+                };
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function changeBet(v) {
+            if (isSpinning) return;
+            bet = Math.max(0.88, Math.min(88, bet + v));
+            updateUI();
+        }
+
+        async function handleSpin() {
+            if (isSpinning) return;
+            if (balance < bet && !isBonus) {
+                startTrivia('recharge');
+                return;
+            }
+
+            isSpinning = true;
+            if (!isBonus) balance -= bet;
+            updateUI();
+
+            if (!isBonus) {
+                cells.forEach(c => { c.el.innerHTML = ''; c.data = null; });
+            }
+
+            await new Promise(r => setTimeout(r, 600));
+
+            if (isBonus) {
+                handleBonusLogic();
+            } else {
+                handleBaseGameLogic();
+            }
+        }
+
+        function handleBaseGameLogic() {
+            let bunCount = 0;
+            cells.forEach(c => {
+                const r = Math.random();
+                if (r < 0.15) {
+                    createBun(c);
+                    bunCount++;
+                } else {
+                    const syms = ['🏮', '🥟', '🧧', '🥢'];
+                    c.el.innerHTML = `<span class="text-3xl opacity-20 grayscale">${syms[Math.floor(Math.random()*syms.length)]}</span>`;
+                }
+            });
+
+            if (bunCount > 0) triggerTease(bunCount);
+
+            if (bunCount >= 6) {
+                triggerBonus();
+            } else {
+                isSpinning = false;
+            }
+        }
+
+        function triggerBonus() {
+            isBonus = true;
+            respins = 3;
+            document.getElementById('bonus-info').classList.remove('hidden');
+            document.getElementById('respin-count').innerText = respins;
+            isSpinning = false;
+        }
+
+        function handleBonusLogic() {
+            let found = false;
+            cells.forEach(c => {
+                if (!c.data && Math.random() < 0.1) {
+                    createBun(c, true);
+                    found = true;
+                }
+            });
+            if (found) {
+                respins = 3;
+                triggerTease(2);
+            } else {
+                respins--;
+            }
+            document.getElementById('respin-count').innerText = respins;
+            if (respins <= 0) endBonus();
+            else isSpinning = false;
+        }
+
+        function endBonus() {
+            let total = 0;
+            cells.forEach(c => { if(c.data) total += c.data.val; });
+            balance += total;
+            
+            const win = document.createElement('div');
+            win.className = "fixed inset-0 flex items-center justify-center bg-black/80 z-[200] text-center";
+            win.innerHTML = `<div><p class="text-yellow-500 font-black text-6xl">BIG WIN!</p><p class="text-white text-5xl font-black">$${total.toFixed(2)}</p></div>`;
+            document.body.appendChild(win);
+
+            setTimeout(() => {
+                win.remove();
+                isBonus = false;
+                document.getElementById('bonus-info').classList.add('hidden');
+                cells.forEach(c => { c.el.innerHTML = ''; c.data = null; });
+                potScales = { green: 1, red: 1, purple: 1 };
+                document.querySelectorAll('.pot-container').forEach(p => p.style.transform = 'scale(1)');
+                updateUI();
+                isSpinning = false;
+            }, 3000);
+        }
+
+        function createBun(cell, bonus = false) {
+            const val = bet * (bonus ? (Math.floor(Math.random() * 10) + 2) : (Math.floor(Math.random() * 5) + 1));
+            cell.data = { val };
+            cell.el.innerHTML = `<div class="bun-symbol"><span class="text-[7px] font-black text-amber-800">BAO NI</span><span class="bun-value">$${val.toFixed(2)}</span></div>`;
+        }
+
+        function triggerTease(count) {
+            const types = ['green', 'red', 'purple'];
+            const t = types[Math.floor(Math.random() * 3)];
+            const pot = document.getElementById(`pot-${t}`);
+            const tease = document.getElementById(`tease-${t}`);
+            
+            potScales[t] += (count * 0.05);
+            if (potScales[t] > 1.5) potScales[t] = 1.5;
+            
+            pot.style.transform = `scale(${potScales[t]})`;
+            pot.classList.add('growing');
+            if (count >= 4) pot.classList.add('pot-shake');
+
+            const msgs = ["SO CLOSE!", "GETTING HOT!", "BOILING!", "FEED ME!", "YUMMY!", "HUGE!"];
+            tease.innerText = msgs[Math.floor(Math.random() * msgs.length)];
+            tease.classList.add('animate-tease');
+            
+            setTimeout(() => {
+                pot.classList.remove('growing', 'pot-shake');
+                tease.classList.remove('animate-tease');
+            }, 1000);
+        }
+
+        function updateUI() {
+            document.getElementById('balance').innerText = `$${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('bet-val').innerText = `$${bet.toFixed(2)}`;
+        }
+
+        init();
+        updateUI();
+    </script>
+</body>
+</html>

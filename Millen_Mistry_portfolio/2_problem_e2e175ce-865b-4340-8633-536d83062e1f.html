@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Podcast Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b;
+            color: #f4f4f5;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #18181b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3f3f46;
+            border-radius: 10px;
+        }
+
+        @keyframes bar-bounce {
+            0%, 100% { transform: scaleY(0.2); }
+            50% { transform: scaleY(1); }
+        }
+
+        .viz-bar {
+            animation: bar-bounce 1s ease-in-out infinite;
+        }
+
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(63, 63, 70, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <div class="bg-red-600 p-2.5 rounded-xl shadow-lg shadow-red-900/30">
+                    <i class="fas fa-microphone text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">AI Podcast <span class="text-red-500">Studio</span></h1>
+                    <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Multimodal Production Suite</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Input Panel -->
+            <div class="lg:col-span-4 space-y-6">
+                <section class="glass-panel rounded-2xl p-6">
+                    <label class="flex items-center gap-2 text-xs font-bold mb-4 text-zinc-400 uppercase tracking-widest">
+                        <i class="fas fa-file-alt"></i> Production Script
+                    </label>
+                    <textarea id="scriptInput" 
+                        class="w-full h-48 bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-200 focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none text-sm"
+                        placeholder="Enter a topic like 'The Ethics of Mars Colonization' or paste a full script..."></textarea>
+                    
+                    <button id="generateBtn" 
+                        class="w-full mt-4 bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                        <span id="btnText">Produce Podcast</span>
+                    </button>
+                    
+                    <div id="statusText" class="text-[11px] mt-4 text-zinc-500 text-center hidden italic">
+                        Drafting script...
+                    </div>
+                </section>
+
+                <section id="scriptPreviewContainer" class="glass-panel rounded-2xl p-6 hidden flex-col h-[300px]">
+                    <h3 class="text-xs font-bold mb-4 text-zinc-400 uppercase tracking-widest">Script Timeline</h3>
+                    <div id="scriptTimeline" class="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 text-sm">
+                        <!-- Lines injected here -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="lg:col-span-8 space-y-6">
+                <div id="videoContainer" class="relative glass-panel rounded-3xl aspect-video overflow-hidden flex items-center justify-center shadow-2xl group">
+                    <div id="placeholder" class="text-center text-zinc-600">
+                        <i class="fas fa-clapperboard text-6xl mb-4 opacity-20"></i>
+                        <p class="text-sm">Video Preview Ready After Generation</p>
+                    </div>
+                    
+                    <div id="videoCanvas" class="hidden absolute inset-0">
+                        <img id="bgImage" src="" class="w-full h-full object-cover opacity-60 transition-opacity duration-1000" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/60"></div>
+                        
+                        <!-- Visualization Bars -->
+                        <div class="absolute bottom-20 left-0 right-0 px-16">
+                            <div id="vizContainer" class="flex items-end justify-center gap-1 h-12 mb-6 hidden">
+                                <!-- Bars created by JS -->
+                            </div>
+                            <div id="subtitleBox" class="text-center transform transition-all duration-300">
+                                <span id="speakerTag" class="text-red-500 font-black uppercase text-[10px] tracking-[0.2em]"></span>
+                                <p id="subtitleText" class="text-xl md:text-2xl font-semibold text-white mt-1 leading-tight drop-shadow-lg"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="playBtn" class="hidden absolute inset-0 m-auto w-20 h-20 bg-red-600 text-white rounded-full items-center justify-center shadow-2xl hover:scale-110 transition-transform z-20">
+                        <i class="fas fa-play text-2xl ml-1"></i>
+                    </button>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="font-bold">Broadcast Controls</h2>
+                            <p class="text-[11px] text-zinc-500 uppercase tracking-wider">Multi-Speaker Engine: Kore & Zephyr</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="downloadBtn" class="hidden text-xs font-bold bg-zinc-800 hover:bg-zinc-700 py-2 px-4 rounded-lg transition-colors">
+                                <i class="fas fa-download mr-2"></i> Export WAV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="audioPlayerContainer" class="mt-6 hidden">
+                        <audio id="podcastAudio" class="w-full h-10 filter invert opacity-80" controls></audio>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const apiKey = ""; // Set at runtime
+        
+        // UI Elements
+        const scriptInput = document.getElementById('scriptInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const btnText = document.getElementById('btnText');
+        const statusText = document.getElementById('statusText');
+        const scriptPreviewContainer = document.getElementById('scriptPreviewContainer');
+        const scriptTimeline = document.getElementById('scriptTimeline');
+        const videoCanvas = document.getElementById('videoCanvas');
+        const placeholder = document.getElementById('placeholder');
+        const bgImage = document.getElementById('bgImage');
+        const subtitleText = document.getElementById('subtitleText');
+        const speakerTag = document.getElementById('speakerTag');
+        const playBtn = document.getElementById('playBtn');
+        const podcastAudio = document.getElementById('podcastAudio');
+        const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+        const vizContainer = document.getElementById('vizContainer');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let podcastData = [];
+        let visualAssets = [];
+
+        // --- Helper: API Fetch with Retry ---
+        async function fetchWithRetry(url, options, retries = 5, backoff = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`Status: ${response.status}`);
+                    return await response.json();
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, backoff * Math.pow(2, i)));
+                }
+            }
+        }
+
+        // --- Step 1: Generate Script ---
+        generateBtn.addEventListener('click', async () => {
+            const topic = scriptInput.value.trim();
+            if (!topic) return;
+
+            setLoading(true);
+            updateStatus("Drafting conversational script...");
+
+            try {
+                // Generate script JSON
+                const scriptRes = await fetchWithRetry(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `Create a podcast dialogue about: "${topic}". 
+                                Return JSON: { "podcast": [ { "speaker": "Host", "text": "...", "visual_prompt": "description of background" }, ... ] }. 
+                                Use "Host" and "Guest" as speakers. 5-7 lines.` }] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    }
+                );
+
+                podcastData = scriptRes.candidates[0].content.parts[0].text;
+                const parsed = JSON.parse(podcastData).podcast;
+                renderTimeline(parsed);
+                
+                // Step 2: Generate Media
+                await generateMedia(parsed);
+
+            } catch (err) {
+                console.error(err);
+                updateStatus("Error generating production. Check console.");
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        async function generateMedia(lines) {
+            updateStatus("Synthesizing AI Voices & Visuals...");
+
+            // 1. Audio Synthesis (TTS)
+            const ttsPrompt = lines.map(l => `${l.speaker}: ${l.text}`).join("\n");
+            const ttsRes = await fetchWithRetry(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: ttsPrompt }] }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: {
+                                multiSpeakerVoiceConfig: {
+                                    speakerVoiceConfigs: [
+                                        { speaker: "Host", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
+                                        { speaker: "Guest", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } } }
+                                    ]
+                                }
+                            }
+                        }
+                    })
+                }
+            );
+
+            const pcmBase64 = ttsRes.candidates[0].content.parts[0].inlineData.data;
+            const audioUrl = pcmToWavUrl(pcmBase64, 24000);
+            podcastAudio.src = audioUrl;
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = audioUrl;
+                a.download = 'podcast.wav';
+                a.click();
+            };
+
+            // 2. Image Generation (Imagen 4.0)
+            const primaryPrompt = lines[0].visual_prompt || "Modern podcast studio interior";
+            const imgRes = await fetchWithRetry(
+                `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        instances: { prompt: `Professional 4k podcast studio, cinematic lighting, ${primaryPrompt}` }, 
+                        parameters: { sampleCount: 1 } 
+                    })
+                }
+            );
+
+            const imgData = `data:image/png;base64,${imgRes.predictions[0].bytesBase64Encoded}`;
+            bgImage.src = imgData;
+
+            // Finalize UI
+            placeholder.classList.add('hidden');
+            videoCanvas.classList.remove('hidden');
+            playBtn.classList.remove('hidden');
+            audioPlayerContainer.classList.remove('hidden');
+            downloadBtn.classList.remove('hidden');
+            updateStatus("Production complete!");
+        }
+
+        // --- PCM to WAV Logic ---
+        function pcmToWavUrl(base64Pcm, sampleRate) {
+            const pcm = Uint8Array.from(atob(base64Pcm), c => c.charCodeAt(0)).buffer;
+            const wav = new Uint8Array(44 + pcm.byteLength);
+            const view = new DataView(wav.buffer);
+            const writeStr = (off, s) => { for(let i=0; i<s.length; i++) view.setUint8(off+i, s.charCodeAt(i)); };
+
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 32 + pcm.byteLength, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // Mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, pcm.byteLength, true);
+            new Uint8Array(wav.buffer, 44).set(new Uint8Array(pcm));
+
+            return URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+        }
+
+        // --- Event Listeners & UI Helpers ---
+        function setLoading(loading) {
+            generateBtn.disabled = loading;
+            btnText.innerText = loading ? "Producing Show..." : "Produce Podcast";
+            statusText.classList.toggle('hidden', !loading);
+            if (loading) generateBtn.querySelector('i').className = "fas fa-spinner fa-spin";
+            else generateBtn.querySelector('i').className = "fas fa-wand-magic-sparkles";
+        }
+
+        function updateStatus(msg) {
+            statusText.innerText = msg;
+        }
+
+        function renderTimeline(lines) {
+            scriptPreviewContainer.classList.remove('hidden');
+            scriptTimeline.innerHTML = lines.map((l, i) => `
+                <div id="line-${i}" class="p-3 rounded-lg bg-zinc-950 border border-zinc-800 transition-all duration-300">
+                    <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${l.speaker === 'Host' ? 'bg-blue-600' : 'bg-purple-600'} text-white">
+                        ${l.speaker}
+                    </span>
+                    <p class="mt-1 text-zinc-400 leading-tight">${l.text}</p>
+                </div>
+            `).join('');
+        }
+
+        playBtn.addEventListener('click', () => {
+            podcastAudio.play();
+            playBtn.classList.add('hidden');
+            vizContainer.classList.remove('hidden');
+            setupViz();
+        });
+
+        podcastAudio.onplay = () => vizContainer.classList.remove('hidden');
+        podcastAudio.onpause = () => vizContainer.classList.add('hidden');
+
+        podcastAudio.ontimeupdate = () => {
+            const progress = podcastAudio.currentTime / podcastAudio.duration;
+            const parsed = JSON.parse(podcastData).podcast;
+            const idx = Math.floor(progress * parsed.length);
+            
+            if (parsed[idx]) {
+                speakerTag.innerText = parsed[idx].speaker;
+                subtitleText.innerText = `"${parsed[idx].text}"`;
+                
+                // Highlight timeline
+                document.querySelectorAll('[id^="line-"]').forEach(el => el.classList.remove('bg-red-900/20', 'border-red-500'));
+                const activeLine = document.getElementById(`line-${idx}`);
+                if (activeLine) activeLine.classList.add('bg-red-900/20', 'border-red-500');
+            }
+        };
+
+        function setupViz() {
+            if (vizContainer.innerHTML === "") {
+                for (let i = 0; i < 24; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = "viz-bar w-1.5 bg-red-500/80 rounded-full";
+                    bar.style.height = '8px';
+                    bar.style.animationDelay = `${i * 0.05}s`;
+                    vizContainer.appendChild(bar);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

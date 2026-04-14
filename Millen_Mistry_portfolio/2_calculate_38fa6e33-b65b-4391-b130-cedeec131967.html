@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slot Math & RTP Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            backdrop-filter: blur(10px);
+        }
+        .stat-value {
+            font-family: monospace;
+            font-weight: 900;
+        }
+        
+        /* Custom Tooltip Styling */
+        .tooltip-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: #475569;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 4px;
+            vertical-align: middle;
+            transition: background 0.2s;
+        }
+        
+        .tooltip-icon:hover {
+            background: #ea580c;
+        }
+
+        .tooltip-box {
+            visibility: hidden;
+            width: 220px;
+            background-color: #1e293b;
+            color: #f1f5f9;
+            text-align: left;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 10px;
+            position: absolute;
+            z-index: 50;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 11px;
+            line-height: 1.4;
+            font-weight: normal;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+
+        .tooltip-box::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #475569 transparent transparent transparent;
+        }
+
+        .tooltip-wrapper:hover .tooltip-box {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+                SLOT MATH SIMULATOR
+            </h1>
+            <p class="text-slate-400">Monte Carlo simulation for "Bao Ni 888" style Hold & Respin mechanics.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Inputs -->
+            <div class="md:col-span-1 space-y-6">
+                <div class="card p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Configuration</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase">
+                                Simulation Spins
+                                <div class="tooltip-wrapper">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-box">The number of individual spins to run. Higher numbers provide a more statistically accurate "Theoretical RTP" but take longer to process.</div>
+                                </div>
+                            </label>
+                            <select id="sim-spins" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
+                                <option value="1000">1,000 Spins (Fast)</option>
+                                <option value="10000" selected>10,000 Spins (Standard)</option>
+                                <option value="50000">50,000 Spins (Accurate)</option>
+                                <option value="100000">100,000 Spins (Pro)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase">
+                                Bun Spawn Chance 
+                                <div class="tooltip-wrapper">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-box">The mathematical probability (per reel spot) that a winning Bun symbol will land. In a 3x5 grid (15 spots), a 14% chance usually means ~2 buns per spin.</div>
+                                </div>
+                            </label>
+                            <input type="number" id="bun-chance" value="14" step="0.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-yellow-400">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase">
+                                Avg Bun Multiplier
+                                <div class="tooltip-wrapper">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-box">The average value written on each Bun. If set to 2.5, a Bun symbol will pay out 2.5x your current bet on average.</div>
+                                </div>
+                            </label>
+                            <input type="number" id="avg-mult" value="2.5" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-yellow-400">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold mb-1 uppercase">
+                                Respin Land Rate
+                                <div class="tooltip-wrapper">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-box">The success rate of landing a new Bun during the 3-spin bonus mode. A higher rate makes it much easier to fill the entire screen and hit the 'Grand' prize.</div>
+                                </div>
+                            </label>
+                            <input type="number" id="retrigger-chance" value="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-yellow-400">
+                        </div>
+
+                        <button onclick="runSimulation()" id="run-btn" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-orange-900/40">
+                            RUN SIMULATION
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Glossary -->
+                <div class="card p-5 rounded-2xl text-[11px] space-y-3 opacity-80">
+                    <h3 class="font-bold text-slate-400 uppercase border-b border-slate-700 pb-1 text-center">Industry Glossary</h3>
+                    <p><strong class="text-green-500">RTP:</strong> "Return to Player." The % of all wagered money that a machine will pay back to players over time.</p>
+                    <p><strong class="text-blue-500">Hit Freq:</strong> How often a spin results in a win of any size. (33% means a win every 3 spins).</p>
+                    <p><strong class="text-purple-500">Volatility:</strong> The "Risk" level. High volatility means fewer wins but much larger jackpots.</p>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="md:col-span-2 space-y-6">
+                <!-- Main Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="card p-6 rounded-2xl border-l-4 border-l-green-500">
+                        <p class="text-xs font-bold text-slate-500 uppercase">Theoretical RTP</p>
+                        <p id="rtp-val" class="stat-value text-4xl text-green-400 mt-2">--%</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Target is usually 88% - 96%</p>
+                    </div>
+                    <div class="card p-6 rounded-2xl border-l-4 border-l-blue-500">
+                        <p class="text-xs font-bold text-slate-500 uppercase">Hit Frequency</p>
+                        <p id="hit-val" class="stat-value text-4xl text-blue-400 mt-2">--%</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Industrial standard: 25-35%</p>
+                    </div>
+                </div>
+
+                <!-- Secondary Stats -->
+                <div class="card p-6 rounded-2xl">
+                    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6">Simulation Breakdown</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-sm text-slate-400">Total Wagered (Bankroll)</span>
+                            <span id="total-wagered" class="stat-value text-white">--</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-sm text-slate-400">Total Paid to Player</span>
+                            <span id="total-paid" class="stat-value text-white">--</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-sm text-slate-400">Bonus Triggers (6+ Buns)</span>
+                            <span id="bonus-triggers" class="stat-value text-yellow-500">--</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-sm text-slate-400">Avg. Payout per Bonus</span>
+                            <span id="avg-bonus" class="stat-value text-orange-400">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col">
+                                <span class="text-sm text-slate-400">Volatility Rating</span>
+                                <span class="text-[10px] text-slate-600">Based on bonus dependency</span>
+                            </div>
+                            <span id="vol-idx" class="stat-value text-purple-400">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log -->
+                <div class="card p-4 rounded-2xl">
+                    <p class="text-[10px] font-bold text-slate-600 uppercase mb-2">Simulation Engine Output</p>
+                    <div id="log" class="text-[10px] font-mono text-slate-500 max-h-32 overflow-y-auto leading-relaxed">
+                        Ready to simulate. Adjust parameters and click "Run".
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function runSimulation() {
+            const btn = document.getElementById('run-btn');
+            btn.disabled = true;
+            btn.innerText = "CRUNCHING NUMBERS...";
+
+            const numSpins = parseInt(document.getElementById('sim-spins').value);
+            const bunChance = parseFloat(document.getElementById('bun-chance').value) / 100;
+            const avgMult = parseFloat(document.getElementById('avg-mult').value);
+            const retriggerChance = parseFloat(document.getElementById('retrigger-chance').value) / 100;
+            const bet = 8.80;
+
+            let totalWagered = 0;
+            let totalPaid = 0;
+            let bonusTriggers = 0;
+            let hits = 0;
+            let bonusPrizes = [];
+
+            // Monte Carlo Engine
+            setTimeout(() => {
+                const startTime = performance.now();
+                
+                for (let i = 0; i < numSpins; i++) {
+                    totalWagered += bet;
+                    let spinPaid = 0;
+                    let bunsFound = 0;
+
+                    // 1. Base Game Spin
+                    for (let c = 0; c < 15; c++) {
+                        if (Math.random() < bunChance) {
+                            bunsFound++;
+                            spinPaid += (bet * (Math.random() * avgMult));
+                        }
+                    }
+
+                    if (spinPaid > 0) hits++;
+
+                    // 2. Bonus Feature Trigger
+                    if (bunsFound >= 6) {
+                        bonusTriggers++;
+                        let currentRespins = 3;
+                        let lockedBuns = bunsFound;
+
+                        while (currentRespins > 0) {
+                            let foundThisTurn = false;
+                            const availableSpots = 15 - lockedBuns;
+                            
+                            for (let r = 0; r < availableSpots; r++) {
+                                if (Math.random() < retriggerChance) {
+                                    lockedBuns++;
+                                    foundThisTurn = true;
+                                }
+                            }
+
+                            if (foundThisTurn) {
+                                currentRespins = 3;
+                            } else {
+                                currentRespins--;
+                            }
+                            
+                            if (lockedBuns >= 15) break;
+                        }
+
+                        const bonusWin = lockedBuns * (bet * (avgMult * 1.5));
+                        spinPaid += bonusWin;
+                        bonusPrizes.push(bonusWin);
+                    }
+
+                    totalPaid += spinPaid;
+                }
+
+                const endTime = performance.now();
+                updateUI(totalPaid, totalWagered, hits, numSpins, bonusTriggers, bonusPrizes, endTime - startTime);
+                
+                btn.disabled = false;
+                btn.innerText = "RUN SIMULATION";
+            }, 50);
+        }
+
+        function updateUI(totalPaid, totalWagered, hits, numSpins, bonusTriggers, bonusPrizes, time) {
+            const rtp = (totalPaid / totalWagered) * 100;
+            const hitFreq = (hits / numSpins) * 100;
+            const avgBonus = bonusPrizes.length > 0 ? (bonusPrizes.reduce((a,b) => a+b, 0) / bonusPrizes.length) : 0;
+
+            document.getElementById('rtp-val').innerText = rtp.toFixed(2) + '%';
+            document.getElementById('hit-val').innerText = hitFreq.toFixed(1) + '%';
+            document.getElementById('total-wagered').innerText = '$' + totalWagered.toLocaleString();
+            document.getElementById('total-paid').innerText = '$' + totalPaid.toLocaleString();
+            document.getElementById('bonus-triggers').innerText = bonusTriggers;
+            document.getElementById('avg-bonus').innerText = '$' + avgBonus.toFixed(2);
+            
+            const bonusTotal = bonusPrizes.reduce((a,b) => a+b, 0);
+            const bonusContribution = totalPaid > 0 ? (bonusTotal / totalPaid) * 100 : 0;
+            
+            let vol = "MEDIUM";
+            let volColor = "text-purple-400";
+            
+            if (bonusContribution > 60) { vol = "EXTREME"; volColor = "text-red-500"; }
+            else if (bonusContribution > 45) { vol = "HIGH"; volColor = "text-orange-400"; }
+            else if (bonusContribution < 25) { vol = "LOW"; volColor = "text-green-400"; }
+
+            const volEl = document.getElementById('vol-idx');
+            volEl.innerText = vol;
+            volEl.className = `stat-value text-4xl ${volColor} mt-2`;
+
+            document.getElementById('log').innerHTML = `
+                > Simulation Complete (${time.toFixed(0)}ms)<br>
+                > Sample Size: ${numSpins.toLocaleString()} spins<br>
+                > Bonus Trigger Rate: 1 in every ${(numSpins/bonusTriggers).toFixed(1)} spins<br>
+                > Bonus % of Total RTP: ${bonusContribution.toFixed(1)}%<br>
+                > Math Model: Stable.
+            `;
+        }
+    </script>
+</body>
+</html>

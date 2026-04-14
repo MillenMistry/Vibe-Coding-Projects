@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Dustin Johnson - Rotation Facts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;900&display=swap');
+
+        body {
+            background-color: #050505;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .dj-font {
+            font-family: 'Bungee', cursive;
+        }
+
+        /* Turntable Styling */
+        .turntable-base {
+            background: #1a1a1a;
+            border-radius: 40px;
+            padding: 40px;
+            border-bottom: 12px solid #000;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+            width: 480px; 
+        }
+
+        .vinyl {
+            background: repeating-radial-gradient(
+                #111,
+                #111 2px,
+                #181818 3px,
+                #111 4px
+            );
+            border: 6px solid #222;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            box-shadow: inset 0 0 20px #000;
+            z-index: 5;
+        }
+
+        .vinyl.spinning {
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .dj-image {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: #fff;
+        }
+
+        /* Speech Bubble */
+        .speech-container {
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .speech-bubble {
+            background: #fff;
+            color: #000;
+            padding: 18px 24px;
+            border-radius: 25px;
+            font-weight: 800;
+            font-size: 1rem;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(255,255,255,0.1);
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .speech-bubble.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: #fff transparent;
+        }
+
+        /* Tonearm Assembly */
+        .tonearm-assembly {
+            position: absolute;
+            top: 50px;
+            right: 40px;
+            z-index: 20;
+        }
+
+        .tonearm {
+            width: 210px; 
+            height: 12px;
+            background: linear-gradient(to bottom, #777, #333);
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform-origin: 95% center;
+            transform: rotate(35deg); 
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px;
+            box-shadow: 2px 5px 15px rgba(0,0,0,0.6);
+        }
+
+        .tonearm::before {
+            content: '';
+            position: absolute;
+            left: -15px; 
+            top: -6px;
+            width: 45px;
+            height: 24px;
+            background: #222;
+            border-radius: 4px;
+            border-right: 2px solid #444;
+        }
+
+        .tonearm::after {
+            content: '';
+            position: absolute;
+            left: 0px;
+            top: 18px;
+            width: 2px;
+            height: 15px;
+            background: #999;
+        }
+
+        .vinyl.spinning ~ .tonearm-assembly .tonearm {
+            transform: rotate(-18deg); 
+        }
+
+        .center-pin {
+            width: 12px;
+            height: 12px;
+            background: #888;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            box-shadow: 0 0 5px #000;
+        }
+
+        .led-indicator {
+            width: 14px;
+            height: 14px;
+            background: #400;
+            border-radius: 50%;
+            transition: background 0.3s, box-shadow 0.3s;
+            flex-shrink: 0;
+        }
+
+        .led-indicator.on {
+            background: #ff0000;
+            box-shadow: 0 0 15px #ff0000;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="w-full max-w-4xl flex flex-col items-center">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="dj-font text-6xl text-yellow-500 italic uppercase leading-none">DJ Dustin</h1>
+            <p class="text-neutral-500 font-bold tracking-[0.3em] text-sm mt-2">ONE ROTATION, ONE FACT</p>
+        </div>
+
+        <!-- Speech Bubble Area -->
+        <div class="speech-container">
+            <div id="fact-bubble" class="speech-bubble">
+                Drop the needle for facts about golfer Dustin Johnson!
+            </div>
+        </div>
+
+        <!-- Turntable Setup -->
+        <div class="turntable-base">
+            <div class="vinyl mx-auto" id="deck" onclick="togglePlayback()">
+                <!-- Center Photo -->
+                <img src="https://pga-tour-res.cloudinary.com/image/upload/c_fill,d_headshots_default.png,f_auto,g_face:center,h_350,q_auto,w_280/headshots_30925.png" alt="Dustin Johnson" class="dj-image">
+                <div class="center-pin"></div>
+            </div>
+            
+            <!-- Tonearm Assembly -->
+            <div class="tonearm-assembly">
+                <div class="tonearm" id="tonearm"></div>
+            </div>
+
+            <!-- Controls - Unified Container -->
+            <div class="mt-12 bg-black/50 border border-white/5 p-6 rounded-3xl w-full">
+                <div class="flex justify-between items-center w-full">
+                    <!-- Button -->
+                    <button onclick="togglePlayback()" id="playBtn" class="bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 px-10 rounded-full transition-all active:scale-95 shadow-lg whitespace-nowrap">
+                        START SESSION
+                    </button>
+                    
+                    <!-- Live Signal -->
+                    <div class="flex items-center gap-4 px-6 py-2 rounded-2xl">
+                        <span class="text-[11px] font-black text-neutral-400 tracking-widest whitespace-nowrap">LIVE SIGNAL</span>
+                        <div id="led" class="led-indicator"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mixer/Stats Footer -->
+        <div class="mt-12 w-full max-w-[480px] grid grid-cols-3 gap-4 text-center">
+            <div class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5">
+                <div class="text-yellow-500 dj-font text-xl" id="rotation-count">0</div>
+                <div class="text-[10px] text-neutral-500 font-bold uppercase" id="rotation-label">Fact count</div>
+            </div>
+            <div class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5">
+                <div class="text-white dj-font text-xl">135</div>
+                <div class="text-[10px] text-neutral-500 font-bold uppercase">Wks @ #1</div>
+            </div>
+            <div class="bg-neutral-900/50 p-4 rounded-2xl border border-white/5">
+                <div class="text-white dj-font text-xl">2</div>
+                <div class="text-[10px] text-neutral-500 font-bold uppercase">Majors</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const facts = [
+            "Dustin has spent 135 weeks as World Number 1 golfer!",
+            "He won the 2020 Masters with a record score of -20.",
+            "DJ is one of the longest drivers on the PGA Tour.",
+            "He has won at least one tournament in each of his first 14 seasons.",
+            "He's a two-time Major Champion (U.S. Open & Masters).",
+            "Dustin is married to Paulina Gretzky, daughter of Wayne Gretzky!",
+            "He was the PGA Player of the Year in 2016 and 2020.",
+            "He famously won the 2016 U.S. Open despite a controversial penalty.",
+            "DJ is known for his incredibly calm, 'cool' demeanor on the course.",
+            "He transitioned to LIV Golf in 2022 as one of their biggest stars.",
+            "In 2023, he captained the 4Aces GC to multiple team titles.",
+            "He once shot a 60 at the Northern Trust in 2020.",
+            "Dustin is 6'4\" tall, giving him immense leverage for his swing.",
+            "He turned professional in 2007 after an impressive college career.",
+            "DJ holds the record for most WGC (World Golf Championships) wins after Tiger Woods."
+        ];
+
+        // "We Are the Champions" Melody
+        // Frequencies for main chorus melody
+        const melodyNotes = [
+            { f: 349.23, d: 0.5 }, // F4
+            { f: 329.63, d: 0.5 }, // E4
+            { f: 349.23, d: 0.5 }, // F4
+            { f: 329.63, d: 0.5 }, // E4
+            { f: 293.66, d: 1.0 }, // D4
+            { f: 261.63, d: 1.0 }, // C4
+            { f: 440.00, d: 0.5 }, // A4
+            { f: 466.16, d: 0.5 }, // Bb4
+            { f: 440.00, d: 0.5 }, // A4
+            { f: 392.00, d: 0.5 }, // G4
+            { f: 349.23, d: 1.5 }  // F4
+        ];
+
+        let isPlaying = false;
+        let rotations = 0;
+        const maxFacts = facts.length;
+        
+        const deck = document.getElementById('deck');
+        const led = document.getElementById('led');
+        const bubble = document.getElementById('fact-bubble');
+        const playBtn = document.getElementById('playBtn');
+        const rotationDisplay = document.getElementById('rotation-count');
+
+        let audioCtx = null;
+        let melodyLoop = null;
+
+        document.getElementById('rotation-label').innerText = `Rotations (Max: ${maxFacts})`;
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playNote(time, freq, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            // Richer synth sound using Sawtooth
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, time);
+            
+            // Filter to make it less harsh
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1000, time);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        function startMelody() {
+            initAudio();
+            let nextNoteTime = audioCtx.currentTime;
+            let noteIndex = 0;
+
+            melodyLoop = setInterval(() => {
+                while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                    const note = melodyNotes[noteIndex % melodyNotes.length];
+                    playNote(nextNoteTime, note.f, note.d);
+                    nextNoteTime += note.d;
+                    noteIndex++;
+                }
+            }, 50);
+        }
+
+        function stopMelody() {
+            if (melodyLoop) {
+                clearInterval(melodyLoop);
+                melodyLoop = null;
+            }
+        }
+
+        function togglePlayback() {
+            if (rotations >= maxFacts && !isPlaying) {
+                rotations = 0;
+                rotationDisplay.innerText = rotations;
+            }
+
+            isPlaying = !isPlaying;
+            
+            if (isPlaying) {
+                deck.classList.add('spinning');
+                led.classList.add('on');
+                playBtn.innerText = "STOP MIX";
+                bubble.classList.add('active');
+                if (rotations === 0) {
+                    bubble.innerText = "We Are The Champions! DJ Session starting...";
+                }
+                startMelody();
+            } else {
+                stopDeck();
+            }
+        }
+
+        function stopDeck() {
+            isPlaying = false;
+            deck.classList.remove('spinning');
+            led.classList.remove('on');
+            playBtn.innerText = "START SESSION";
+            stopMelody();
+            if (rotations >= maxFacts) {
+                bubble.innerText = "Victory! All DJ facts delivered.";
+                playBtn.innerText = "RESTART SESSION";
+            }
+        }
+
+        deck.addEventListener('animationiteration', () => {
+            if (isPlaying) {
+                if (rotations >= maxFacts) {
+                    stopDeck();
+                    return;
+                }
+
+                const currentFact = facts[rotations];
+                rotations++;
+                rotationDisplay.innerText = rotations;
+                
+                bubble.classList.remove('active');
+                setTimeout(() => {
+                    bubble.innerText = currentFact;
+                    bubble.classList.add('active');
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>

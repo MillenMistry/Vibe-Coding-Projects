@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor's Podium v2.0 (Offline Engine)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .serif { font-family: 'Merriweather', serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-[#f9fafb] text-slate-900 min-h-screen">
+
+    <div id="app" class="max-w-6xl mx-auto p-4 md:p-10">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b-2 border-slate-200 pb-6">
+            <div class="flex items-center gap-4">
+                <div class="bg-indigo-900 p-3 rounded-lg text-white shadow-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight text-slate-800">Professor's Podium</h1>
+                    <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Local Rule-Based Grading Engine</p>
+                </div>
+            </div>
+            
+            <div class="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200 mt-4 md:mt-0 text-xs font-bold">
+                <button id="btn-generic" onclick="setGradingMode('generic')" class="px-4 py-2 rounded-lg transition-all bg-slate-900 text-white">GENERAL FEEDBACK</button>
+                <button id="btn-custom" onclick="setGradingMode('custom')" class="px-4 py-2 rounded-lg transition-all text-slate-400 hover:text-slate-600">CUSTOM RUBRIC</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-5 space-y-6">
+                <div class="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path></svg>
+                        Manuscript Submission
+                    </h2>
+
+                    <div id="rubric-container" class="hidden mb-4 transition-all">
+                        <label class="block text-[10px] font-bold text-indigo-600 mb-1 uppercase tracking-wider">Keywords for Rubric (e.g. History, Science, Logic)</label>
+                        <input id="custom-rubric" class="w-full p-3 text-sm bg-indigo-50/30 border border-indigo-100 rounded-xl outline-none" placeholder="Enter comma separated keywords...">
+                    </div>
+
+                    <textarea id="essay-text" class="w-full h-80 p-5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-slate-900 outline-none bg-[#fdfdfd] text-lg leading-relaxed shadow-inner" placeholder="Paste the student's essay text here..."></textarea>
+
+                    <button id="grade-button" onclick="localGradeEssay()" class="w-full mt-6 py-4 bg-slate-900 text-white rounded-xl font-bold text-lg hover:bg-slate-800 flex items-center justify-center gap-3 transition-all shadow-xl">
+                        Evaluate Locally
+                    </button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-7">
+                <div id="empty-state" class="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-12 bg-white rounded-2xl border border-slate-200 border-dashed opacity-40">
+                    <h3 class="text-xl font-bold text-slate-400">Awaiting Submission</h3>
+                    <p class="text-slate-400 text-sm mt-2 max-w-xs">The local engine will analyze your text immediately.</p>
+                </div>
+
+                <div id="report-content" class="hidden space-y-6">
+                    <div class="bg-white rounded-2xl p-10 shadow-xl border-t-8 border-indigo-900 relative overflow-hidden">
+                        <div class="flex justify-between items-start relative z-10">
+                            <div>
+                                <h2 id="final-grade" class="text-7xl font-black text-slate-900 leading-none">--</h2>
+                                <p class="text-xs font-black mt-3 uppercase tracking-[0.2em] text-indigo-600">Local Assessment</p>
+                            </div>
+                            <div class="text-right">
+                                <div id="final-gpa" class="text-3xl font-bold text-slate-800">--</div>
+                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Calculated Score</p>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-8 border-t border-slate-100 relative z-10">
+                            <p id="overall-sentiment" class="text-xl serif italic text-slate-700 leading-relaxed"></p>
+                        </div>
+                    </div>
+
+                    <div id="criteria-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+
+                    <div id="annotations-container" class="bg-white rounded-2xl p-8 shadow-lg border border-slate-100">
+                        <h3 class="text-sm font-black mb-6 text-red-600 uppercase tracking-widest">Revision Suggestions</h3>
+                        <div id="annotations-list" class="space-y-4 text-sm font-sans">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentGradingMode = 'generic';
+
+        function setGradingMode(mode) {
+            currentGradingMode = mode;
+            document.getElementById('btn-generic').className = mode === 'generic' ? "px-4 py-2 rounded-lg bg-slate-900 text-white" : "px-4 py-2 rounded-lg text-slate-400";
+            document.getElementById('btn-custom').className = mode === 'custom' ? "px-4 py-2 rounded-lg bg-slate-900 text-white" : "px-4 py-2 rounded-lg text-slate-400";
+            document.getElementById('rubric-container').style.display = mode === 'custom' ? 'block' : 'none';
+        }
+
+        function localGradeEssay() {
+            const text = document.getElementById('essay-text').value;
+            const rubricRaw = document.getElementById('custom-rubric').value;
+            if (!text.trim()) return;
+
+            // 1. Scoring Logic
+            let scores = { grammar: 100, structure: 60, logic: 70, style: 80 };
+            let annotations = [];
+
+            // Simple Grammar Checks
+            const checks = [
+                { reg: /\bit's\b(?= [a-z])/gi, err: "it's", fix: "its", note: "Possessive 'its' does not need an apostrophe." },
+                { reg: /\bi should of\b/gi, err: "should of", fix: "should have", note: "Grammatical error: 'of' instead of 'have'." },
+                { reg: /\b(is|was|were|been) \w+ed by\b/gi, err: "Passive Voice", fix: "Active Voice", note: "Passive voice detected. Try making the subject perform the action." }
+            ];
+
+            checks.forEach(c => {
+                if (c.reg.test(text)) {
+                    scores.grammar -= 10;
+                    annotations.push({ original: c.err, replacement: c.fix, note: c.note });
+                }
+            });
+
+            // Structure Check
+            const words = text.split(/\s+/).length;
+            const paragraphs = text.split(/\n\n/).length;
+            if (paragraphs >= 3) scores.structure += 20;
+            if (words > 200) scores.structure += 20;
+
+            // Rubric Logic
+            if (currentGradingMode === 'custom' && rubricRaw) {
+                const keywords = rubricRaw.split(',').map(k => k.trim().toLowerCase());
+                let matches = 0;
+                keywords.forEach(k => { if (text.toLowerCase().includes(k)) matches++; });
+                scores.logic = Math.min(100, (matches / keywords.length) * 100);
+            }
+
+            // Calculate Grade
+            const total = (scores.grammar + scores.structure + scores.logic + scores.style) / 4;
+            let grade = 'F';
+            if (total > 90) grade = 'A';
+            else if (total > 80) grade = 'B';
+            else if (total > 70) grade = 'C';
+            else if (total > 60) grade = 'D';
+
+            // 2. Render Results
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('report-content').classList.remove('hidden');
+            document.getElementById('final-grade').innerText = grade;
+            document.getElementById('final-gpa').innerText = (total / 25).toFixed(1);
+            document.getElementById('overall-sentiment').innerText = total > 75 
+                ? "A strong effort. Your writing shows clarity and purpose." 
+                : "This manuscript requires significant revision to meet academic standards.";
+
+            const grid = document.getElementById('criteria-grid');
+            grid.innerHTML = '';
+            Object.entries(scores).forEach(([label, val]) => {
+                grid.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                        <div class="flex justify-between font-bold text-xs uppercase mb-2"><span>${label}</span><span>${val}%</span></div>
+                        <div class="h-1 bg-slate-100 rounded-full"><div class="h-full bg-indigo-600" style="width: ${val}%"></div></div>
+                    </div>
+                `;
+            });
+
+            const list = document.getElementById('annotations-list');
+            list.innerHTML = annotations.length > 0 
+                ? annotations.map(a => `<div class="p-3 bg-red-50 rounded-lg border-l-4 border-red-400"><strong>"${a.original}" → "${a.replacement}"</strong>: ${a.note}</div>`).join('')
+                : "No major mechanical errors detected by the local engine.";
+        }
+    </script>
+</body>
+</html>
